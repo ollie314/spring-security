@@ -23,6 +23,7 @@ import javax.servlet.http.HttpSession;
 import org.springframework.security.config.annotation.SecurityConfigurer;
 import org.springframework.security.config.annotation.web.HttpSecurityBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.logout.CookieClearingLogoutHandler;
 import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
@@ -32,6 +33,7 @@ import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuc
 import org.springframework.security.web.authentication.ui.DefaultLoginPageGeneratingFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.util.Assert;
 
 /**
  * Adds logout support. Other {@link SecurityConfigurer} instances may invoke
@@ -84,9 +86,21 @@ public final class LogoutConfigurer<H extends HttpSecurityBuilder<H>> extends
 	 * @return the {@link LogoutConfigurer} for further customization
 	 */
 	public LogoutConfigurer<H> addLogoutHandler(LogoutHandler logoutHandler) {
+		Assert.notNull(logoutHandler, "logoutHandler cannot be null");
 		this.logoutHandlers.add(logoutHandler);
 		return this;
 	}
+
+	/**
+	 * Specifies if {@link SecurityContextLogoutHandler} should clear the {@link Authentication} at the time of logout.
+	 * @param clearAuthentication true {@link SecurityContextLogoutHandler} should clear the {@link Authentication} (default), or false otherwise.
+	 * @return the {@link LogoutConfigurer} for further customization
+	 */
+	public LogoutConfigurer<H> clearAuthentication(boolean clearAuthentication) {
+		contextLogoutHandler.setClearAuthentication(clearAuthentication);
+		return this;
+	}
+
 
 	/**
 	 * Configures {@link SecurityContextLogoutHandler} to invalidate the

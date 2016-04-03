@@ -15,7 +15,7 @@
  */
 package org.springframework.security.config.annotation.web.configurers;
 
-import static org.fest.assertions.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import org.junit.After;
@@ -24,6 +24,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
@@ -78,6 +79,7 @@ public class CsrfConfigurerNoWebMvcTests {
 	@EnableWebSecurity
 	static class EnableWebOverrideRequestDataConfig {
 		@Bean
+		@Primary
 		public RequestDataValueProcessor requestDataValueProcessor() {
 			return mock(RequestDataValueProcessor.class);
 		}

@@ -10,3 +10,7 @@ configure(project.tasks.withType(Test)) {
 		exclude '**/EncryptorsTests.class'
 	}
 }
+
+dependencies {
+	optional 'org.bouncycastle:bcpkix-jdk15on:1.54'
+}

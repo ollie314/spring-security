@@ -1,10 +1,11 @@
-/* Copyright 2004, 2005, 2006 Acegi Technology Pty Limited
+/*
+ * Copyright 2004, 2005, 2006 Acegi Technology Pty Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,7 +16,7 @@
 
 package org.springframework.security.web.access.intercept;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
 import java.util.Collection;
@@ -56,7 +57,7 @@ public class DefaultFilterInvocationSecurityMetadataSourceTests {
 		FilterInvocation fi = createFilterInvocation("/SeCuRE/super/somefile.html", null,
 				null, null);
 
-		assertEquals(def, fids.getAttributes(fi));
+		assertThat(fids.getAttributes(fi)).isEqualTo(def);
 	}
 
 	/**
@@ -71,7 +72,7 @@ public class DefaultFilterInvocationSecurityMetadataSourceTests {
 				null, null);
 
 		Collection<ConfigAttribute> response = fids.getAttributes(fi);
-		assertEquals(def, response);
+		assertThat(response).isEqualTo(def);
 	}
 
 	@Test
@@ -82,7 +83,7 @@ public class DefaultFilterInvocationSecurityMetadataSourceTests {
 				null, null);
 
 		Collection<ConfigAttribute> response = fids.getAttributes(fi);
-		assertEquals(def, response);
+		assertThat(response).isEqualTo(def);
 	}
 
 	@Test
@@ -93,7 +94,7 @@ public class DefaultFilterInvocationSecurityMetadataSourceTests {
 				"a=/test", null);
 
 		Collection<ConfigAttribute> response = fids.getAttributes(fi);
-		assertEquals(def, response); // see SEC-161 (it should truncate after ? sign)
+		assertThat(response); // see SEC-161 (it should truncate after ? sign).isEqualTo(def)
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -107,7 +108,7 @@ public class DefaultFilterInvocationSecurityMetadataSourceTests {
 
 		FilterInvocation fi = createFilterInvocation("/somepage", null, null, "GET");
 		Collection<ConfigAttribute> attrs = fids.getAttributes(fi);
-		assertEquals(def, attrs);
+		assertThat(attrs).isEqualTo(def);
 	}
 
 	@Test
@@ -116,7 +117,7 @@ public class DefaultFilterInvocationSecurityMetadataSourceTests {
 
 		FilterInvocation fi = createFilterInvocation("/somepage", null, null, "GET");
 		Collection<ConfigAttribute> attrs = fids.getAttributes(fi);
-		assertEquals(def, attrs);
+		assertThat(attrs).isEqualTo(def);
 	}
 
 	@Test
@@ -125,7 +126,7 @@ public class DefaultFilterInvocationSecurityMetadataSourceTests {
 
 		FilterInvocation fi = createFilterInvocation("/somepage", null, null, "POST");
 		Collection<ConfigAttribute> attrs = fids.getAttributes(fi);
-		assertNull(attrs);
+		assertThat(attrs).isNull();
 	}
 
 	// SEC-1236
@@ -141,7 +142,7 @@ public class DefaultFilterInvocationSecurityMetadataSourceTests {
 
 		FilterInvocation fi = createFilterInvocation("/user", null, null, "GET");
 		Collection<ConfigAttribute> attrs = fids.getAttributes(fi);
-		assertEquals(userAttrs, attrs);
+		assertThat(attrs).isEqualTo(userAttrs);
 	}
 
 	/**
@@ -155,12 +156,12 @@ public class DefaultFilterInvocationSecurityMetadataSourceTests {
 				null);
 
 		Collection<ConfigAttribute> response = fids.getAttributes(fi);
-		assertEquals(def, response);
+		assertThat(response).isEqualTo(def);
 
 		fi = createFilterInvocation("/someAdminPage.html", null, "?", null);
 
 		response = fids.getAttributes(fi);
-		assertEquals(def, response);
+		assertThat(response).isEqualTo(def);
 	}
 
 	private FilterInvocation createFilterInvocation(String servletPath, String pathInfo,

@@ -1,23 +1,19 @@
-import org.gradle.plugins.ide.eclipse.model.SourceFolder
 
 apply plugin: 'java'
 apply plugin: 'groovy'
 apply plugin: 'javadocHotfix'
-apply plugin: 'eclipse-wtp'
 apply plugin: 'propdeps'
 apply plugin: 'propdeps-maven'
-apply plugin: 'propdeps-idea'
-apply plugin: 'propdeps-eclipse'
 
-sourceCompatibility = 1.5
-targetCompatibility = 1.5
+sourceCompatibility = 1.6
+targetCompatibility = 1.6
 
 ext.apacheDsVersion = '1.5.5'
 ext.aspectjVersion = '1.8.4'
-ext.casClientVersion = '3.3.3'
+ext.casClientVersion = '3.4.1'
 ext.cglibVersion = '3.1'
 ext.commonsCodecVersion = '1.10'
-ext.commonsCollectionsVersion = '3.2.1'
+ext.commonsCollectionsVersion = '3.2.2'
 ext.commonsLoggingVersion = '1.2'
 ext.ehcacheVersion = '2.9.0'
 ext.gebVersion = '0.10.0'
@@ -26,7 +22,7 @@ ext.hsqlVersion = '2.3.2'
 ext.jacksonDatavindVersion = '2.4.4'
 ext.jettyVersion = '6.1.26'
 ext.jstlVersion = '1.2.1'
-ext.junitVersion = '4.11'
+ext.junitVersion = '4.12'
 ext.logbackVersion = '1.1.2'
 ext.powerMockVersion = '1.6.2'
 ext.seleniumVersion = '2.44.0'
@@ -79,12 +75,12 @@ ext.jstlDependencies = [
 ]
 
 ext.apachedsDependencies = [
-		 "org.apache.directory.server:apacheds-core:$apacheDsVersion",
-		 "org.apache.directory.server:apacheds-core-entry:$apacheDsVersion",
-		 "org.apache.directory.server:apacheds-protocol-shared:$apacheDsVersion",
-		 "org.apache.directory.server:apacheds-protocol-ldap:$apacheDsVersion",
-		 "org.apache.directory.server:apacheds-server-jndi:$apacheDsVersion",
-		 'org.apache.directory.shared:shared-ldap:0.9.15'
+		"org.apache.directory.server:apacheds-core:$apacheDsVersion",
+		"org.apache.directory.server:apacheds-core-entry:$apacheDsVersion",
+		"org.apache.directory.server:apacheds-protocol-shared:$apacheDsVersion",
+		"org.apache.directory.server:apacheds-protocol-ldap:$apacheDsVersion",
+		"org.apache.directory.server:apacheds-server-jndi:$apacheDsVersion",
+		'org.apache.directory.shared:shared-ldap:0.9.15'
 ]
 
 // Integration test setup
@@ -127,11 +123,6 @@ task integrationTest(type: Test, dependsOn: jar) {
 	}
 }
 
-eclipse {
-	classpath {
-		plusConfigurations += [ configurations.integrationTestCompile ]
-	}
-}
 project.conf2ScopeMappings.addMapping(MavenPlugin.TEST_COMPILE_PRIORITY + 1, project.configurations.getByName("integrationTestCompile"), Conf2ScopeMappingContainer.TEST)
 project.conf2ScopeMappings.addMapping(MavenPlugin.TEST_COMPILE_PRIORITY + 2, project.configurations.getByName("integrationTestRuntime"), Conf2ScopeMappingContainer.TEST)
 check.dependsOn integrationTest
@@ -144,7 +135,6 @@ task springSnapshotTest(type: Test) {
 		junitXml.destination = project.file("$buildDir/reports/spring-snapshot-tests/")
 	}
 }
-check.dependsOn springSnapshotTest
 
 dependencies {
 	optional "commons-logging:commons-logging:$commonsLoggingVersion"
@@ -152,7 +142,7 @@ dependencies {
 	testCompile "junit:junit:$junitVersion",
 			'org.mockito:mockito-core:1.10.19',
 			"org.springframework:spring-test:$springVersion",
-			'org.easytesting:fest-assert:1.4'
+			'org.assertj:assertj-core:2.2.0'
 
 	// Use slf4j/logback for logging
 	testRuntime "org.slf4j:jcl-over-slf4j:$slf4jVersion",
@@ -172,7 +162,7 @@ configurations.all {
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
 project.tasks.matching { it instanceof Test && it.name != 'integrationTest' }.all {
-	jvmArgs = ['-ea', '-Xmx500m', '-XX:MaxPermSize=256M']
+	jvmArgs = ['-ea', '-Xmx500m']
 	maxParallelForks = guessMaxForks()
 	logging.captureStandardOutput(LogLevel.INFO)
 }
@@ -196,6 +186,8 @@ jar {
 javadoc {
 	title = "Spring Security $version API"
 	source = sourceSets.main.allJava
+	logging.captureStandardError LogLevel.INFO
+	logging.captureStandardOutput LogLevel.INFO
 	options {
 		memberLevel = org.gradle.external.javadoc.JavadocMemberLevel.PROTECTED
 		author = true
@@ -223,47 +215,8 @@ javadoc {
 			'Spring Security Config':['org.springframework.security.config*'],
 			'Spring Security Taglibs':['org.springframework.security.taglibs*'],
 		]
+		addStringOption('-quiet')
 	}
-}
-
-eclipse.classpath.downloadSources = true
-
-// http://forums.gradle.org/gradle/topics/eclipse_wtp_deploys_testcode_to_server_example_provided
-eclipse.classpath {
-	defaultOutputDir = file('bin/main')
-	file.whenMerged { cp ->
-		cp.entries.findAll { it instanceof SourceFolder && (it.path.contains("test") || it.path.contains("Test")) }*.output = "bin/test"
-	}
-}
-
-// GRADLE-1116
-project.eclipse.classpath.file.whenMerged { classpath ->
-	classpath.entries.removeAll { entry -> entry.path.endsWith('/build/resources/test') }
-	classpath.entries.removeAll { entry -> entry.path.endsWith('/build/classes/test') }
-	classpath.entries.removeAll { entry -> entry.path.endsWith('/build/resources/main') }
-	classpath.entries.removeAll { entry -> entry.path.endsWith('/build/classes/main') }
-}
-
-// GRADLE-1422
-project.eclipseClasspath.doFirst {
-   // delay adding whenMerged till the entryAttributes are added (must be the last whenMerged)
-   project.eclipse.classpath.file.whenMerged { classpath ->
-	   def includeDeps = project.configurations.getByName('runtime').collect {f -> f.absolutePath } as Set
-	   classpath.entries.each { cp ->
-		   if(cp instanceof org.gradle.plugins.ide.eclipse.model.Library) {
-			   def include = includeDeps.contains(cp.path)
-			   def attr = 'org.eclipse.jst.component.dependency'
-			   if(!include) {
-				   cp.entryAttributes.remove(attr)
-			   }
-		   }
-	   }
-   }
-}
-
-project.idea.module {
-	scopes.TEST.plus += [project.configurations.integrationTestRuntime]
-	testSourceDirs += sourceSets.integrationTest.resources.srcDirs
 }
 
 task javadocJar(type: Jar) {

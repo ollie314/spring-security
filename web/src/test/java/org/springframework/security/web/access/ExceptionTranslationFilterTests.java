@@ -1,10 +1,11 @@
-/* Copyright 2004, 2005, 2006 Acegi Technology Pty Limited
+/*
+ * Copyright 2004, 2005, 2006 Acegi Technology Pty Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,7 +16,7 @@
 
 package org.springframework.security.web.access;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -97,13 +98,12 @@ public class ExceptionTranslationFilterTests {
 		// Test
 		ExceptionTranslationFilter filter = new ExceptionTranslationFilter(mockEntryPoint);
 		filter.setAuthenticationTrustResolver(new AuthenticationTrustResolverImpl());
-		assertNotNull(filter.getAuthenticationTrustResolver());
+		assertThat(filter.getAuthenticationTrustResolver()).isNotNull();
 
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		filter.doFilter(request, response, fc);
-		assertEquals("/mycontext/login.jsp", response.getRedirectedUrl());
-		assertEquals("http://www.example.com/mycontext/secure/page.html",
-				getSavedRequestUrl(request));
+		assertThat(response.getRedirectedUrl()).isEqualTo("/mycontext/login.jsp");
+		assertThat(getSavedRequestUrl(request)).isEqualTo("http://www.example.com/mycontext/secure/page.html");
 	}
 
 	@Test
@@ -131,9 +131,8 @@ public class ExceptionTranslationFilterTests {
 
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		filter.doFilter(request, response, fc);
-		assertEquals(403, response.getStatus());
-		assertEquals(AccessDeniedException.class,
-				request.getAttribute(WebAttributes.ACCESS_DENIED_403).getClass());
+		assertThat(response.getStatus()).isEqualTo(403);
+		assertThat(request.getAttribute(WebAttributes.ACCESS_DENIED_403)).isExactlyInstanceOf(AccessDeniedException.class);
 	}
 
 	@Test
@@ -158,9 +157,8 @@ public class ExceptionTranslationFilterTests {
 		filter.afterPropertiesSet();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		filter.doFilter(request, response, fc);
-		assertEquals("/mycontext/login.jsp", response.getRedirectedUrl());
-		assertEquals("http://www.example.com/mycontext/secure/page.html",
-				getSavedRequestUrl(request));
+		assertThat(response.getRedirectedUrl()).isEqualTo("/mycontext/login.jsp");
+		assertThat(getSavedRequestUrl(request)).isEqualTo("http://www.example.com/mycontext/secure/page.html");
 	}
 
 	@Test
@@ -188,9 +186,8 @@ public class ExceptionTranslationFilterTests {
 		filter.afterPropertiesSet();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		filter.doFilter(request, response, fc);
-		assertEquals("/mycontext/login.jsp", response.getRedirectedUrl());
-		assertEquals("http://www.example.com:8080/mycontext/secure/page.html",
-				getSavedRequestUrl(request));
+		assertThat(response.getRedirectedUrl()).isEqualTo("/mycontext/login.jsp");
+		assertThat(getSavedRequestUrl(request)).isEqualTo("http://www.example.com:8080/mycontext/secure/page.html");
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -211,7 +208,7 @@ public class ExceptionTranslationFilterTests {
 
 		// Test
 		ExceptionTranslationFilter filter = new ExceptionTranslationFilter(mockEntryPoint);
-		assertSame(mockEntryPoint, filter.getAuthenticationEntryPoint());
+		assertThat(filter.getAuthenticationEntryPoint()).isSameAs(mockEntryPoint);
 
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		filter.doFilter(request, response, mock(FilterChain.class));
@@ -236,8 +233,7 @@ public class ExceptionTranslationFilterTests {
 				fail("Should have thrown Exception");
 			}
 			catch (Exception expected) {
-				assertSame("The exception thrown should not have been wrapped", e,
-						expected);
+				assertThat(expected).isSameAs(e);
 			}
 		}
 	}

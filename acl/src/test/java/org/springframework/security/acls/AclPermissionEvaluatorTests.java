@@ -1,6 +1,22 @@
+/*
+ * Copyright 2002-2016 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.springframework.security.acls;
 
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.*;
+
 import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
 
@@ -36,7 +52,7 @@ public class AclPermissionEvaluatorTests {
 		when(service.readAclById(any(ObjectIdentity.class), anyList())).thenReturn(acl);
 		when(acl.isGranted(anyList(), anyList(), eq(false))).thenReturn(true);
 
-		assertTrue(pe.hasPermission(mock(Authentication.class), new Object(), "READ"));
+		assertThat(pe.hasPermission(mock(Authentication.class), new Object(), "READ")).isTrue();
 	}
 
 	@Test
@@ -56,7 +72,7 @@ public class AclPermissionEvaluatorTests {
 		when(service.readAclById(any(ObjectIdentity.class), anyList())).thenReturn(acl);
 		when(acl.isGranted(anyList(), anyList(), eq(false))).thenReturn(true);
 
-		assertTrue(pe.hasPermission(mock(Authentication.class), new Object(), "write"));
+		assertThat(pe.hasPermission(mock(Authentication.class), new Object(), "write")).isTrue();
 
 		Locale.setDefault(systemLocale);
 	}

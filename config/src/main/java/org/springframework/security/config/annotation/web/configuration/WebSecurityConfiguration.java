@@ -142,15 +142,17 @@ public class WebSecurityConfiguration implements ImportAware, BeanClassLoaderAwa
 		Collections.sort(webSecurityConfigurers, AnnotationAwareOrderComparator.INSTANCE);
 
 		Integer previousOrder = null;
+		Object previousConfig = null;
 		for (SecurityConfigurer<Filter, WebSecurity> config : webSecurityConfigurers) {
 			Integer order = AnnotationAwareOrderComparator.lookupOrder(config);
 			if (previousOrder != null && previousOrder.equals(order)) {
 				throw new IllegalStateException(
 						"@Order on WebSecurityConfigurers must be unique. Order of "
-								+ order + " was already used, so it cannot be used on "
+								+ order + " was already used on " + previousConfig + ", so it cannot be used on "
 								+ config + " too.");
 			}
 			previousOrder = order;
+			previousConfig = config;
 		}
 		for (SecurityConfigurer<Filter, WebSecurity> webSecurityConfigurer : webSecurityConfigurers) {
 			webSecurity.apply(webSecurityConfigurer);
@@ -197,7 +199,7 @@ public class WebSecurityConfiguration implements ImportAware, BeanClassLoaderAwa
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see org.springframework.context.annotation.ImportAware#setImportMetadata(org.
 	 * springframework.core.type.AnnotationMetadata)
 	 */
@@ -206,23 +208,6 @@ public class WebSecurityConfiguration implements ImportAware, BeanClassLoaderAwa
 				.getAnnotationAttributes(EnableWebSecurity.class.getName());
 		AnnotationAttributes enableWebSecurityAttrs = AnnotationAttributes
 				.fromMap(enableWebSecurityAttrMap);
-		if (enableWebSecurityAttrs == null) {
-			// search parent classes
-			Class<?> currentClass = ClassUtils.resolveClassName(
-					importMetadata.getClassName(), beanClassLoader);
-			for (Class<?> classToInspect = currentClass; classToInspect != null; classToInspect = classToInspect
-					.getSuperclass()) {
-				EnableWebSecurity enableWebSecurityAnnotation = AnnotationUtils
-						.findAnnotation(classToInspect, EnableWebSecurity.class);
-				if (enableWebSecurityAnnotation == null) {
-					continue;
-				}
-				enableWebSecurityAttrMap = AnnotationUtils
-						.getAnnotationAttributes(enableWebSecurityAnnotation);
-				enableWebSecurityAttrs = AnnotationAttributes
-						.fromMap(enableWebSecurityAttrMap);
-			}
-		}
 		debugEnabled = enableWebSecurityAttrs.getBoolean("debug");
 		if (webSecurity != null) {
 			webSecurity.debug(debugEnabled);
@@ -231,7 +216,7 @@ public class WebSecurityConfiguration implements ImportAware, BeanClassLoaderAwa
 
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see
 	 * org.springframework.beans.factory.BeanClassLoaderAware#setBeanClassLoader(java.
 	 * lang.ClassLoader)

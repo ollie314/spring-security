@@ -7,14 +7,17 @@ buildscript {
 	dependencies {
 		classpath("org.springframework.build.gradle:propdeps-plugin:0.0.7")
 		classpath("io.spring.gradle:spring-io-plugin:0.0.4.RELEASE")
-		classpath("org.gradle.api.plugins:gradle-tomcat-plugin:1.2.5")
+		classpath("com.bmuschko:gradle-tomcat-plugin:2.2.4")
 		classpath('me.champeau.gradle:gradle-javadoc-hotfix-plugin:0.1')
 		classpath('org.asciidoctor:asciidoctor-gradle-plugin:1.5.1')
 		classpath("io.spring.gradle:docbook-reference-plugin:0.3.1")
 	}
 }
 
-apply plugin: 'sonar-runner'
+plugins {
+	id "org.sonarqube" version "1.2"
+}
+
 apply plugin: 'base'
 
 description = 'Spring Security'
@@ -25,7 +28,7 @@ allprojects {
 
 	ext.releaseBuild = version.endsWith('RELEASE')
 	ext.snapshotBuild = version.endsWith('SNAPSHOT')
-	ext.springVersion = '4.2.1.RELEASE'
+	ext.springVersion = '4.2.5.RELEASE'
 	ext.springLdapVersion = '2.0.2.RELEASE'
 
 	group = 'org.springframework.security'
@@ -40,8 +43,8 @@ allprojects {
 	eclipse.project.name = "${project.name}-4.1.x"
 }
 
-sonarRunner {
-	sonarProperties {
+sonarqube {
+	properties {
 		property "sonar.java.coveragePlugin", "jacoco"
 		property "sonar.projectName", "Spring Security"
 		property "sonar.jacoco.reportPath", "${buildDir.name}/jacoco.exec"
@@ -82,7 +85,7 @@ configure(allprojects - javaProjects) {
 
 configure(subprojects - coreModuleProjects - project(':spring-security-samples-messages-jc') - project(':spring-security-bom')) {
 	tasks.findByPath("artifactoryPublish")?.enabled = false
-	sonarRunner {
+	sonarqube {
 		skipProject = true
 	}
 }
@@ -91,6 +94,10 @@ configure(javaProjects) {
 	ext.TOMCAT_GRADLE = "$rootDir/gradle/tomcat.gradle"
 	ext.WAR_SAMPLE_GRADLE = "$rootDir/gradle/war-sample.gradle"
 	apply from: "$rootDir/gradle/javaprojects.gradle"
+	if(!project.name.contains('gae')) {
+		apply from: "$rootDir/gradle/checkstyle.gradle"
+	}
+	apply from: "$rootDir/gradle/ide.gradle"
 	apply from: "$rootDir/gradle/release-checks.gradle"
 	apply from: "$rootDir/gradle/maven-deployment.gradle"
 }
@@ -99,7 +106,7 @@ configure(coreModuleProjects) {
 	apply plugin: 'emma'
 	apply plugin: 'spring-io'
 
-	ext.springIoVersion = project.hasProperty('platformVersion') ? platformVersion : 'latest.integration'
+	ext.springIoVersion = project.hasProperty('platformVersion') ? platformVersion : '2.0.1.RELEASE'
 
 	configurations {
 		jacoco //Configuration Group used by Sonar to provide Code Coverage using JaCoCo
@@ -139,7 +146,7 @@ task coreInstall {
 // Task for creating the distro zip
 
 task dist(type: Zip) {
-	dependsOn subprojects*.tasks*.matching { task -> task.name == 'assemble' || task.name.endsWith('Zip') || task.name.endsWith('generatePom') }
+	dependsOn { subprojects*.tasks*.matching { task -> task.name.endsWith('generatePom') } }
 	classifier = 'dist'
 
 	evaluationDependsOn(':docs')
@@ -149,14 +156,19 @@ task dist(type: Zip) {
 	into(zipRootDir) {
 		from(rootDir) {
 			include '*.adoc'
+			include '*.txt'
 		}
 		into('docs') {
 			with(project(':docs').apiSpec)
 			with(project(':docs:manual').spec)
 			with(project(':docs:guides').spec)
 		}
-		into('dist') {
-			from coreModuleProjects.collect {project -> project.libsDir }
+		project.coreModuleProjects*.tasks*.withType(AbstractArchiveTask).flatten().each{ archiveTask ->
+			if(archiveTask!=dist){
+				into("$zipRootDir/dist") {
+					from archiveTask.outputs.files
+				}
+			}
 		}
 		sampleProjects.each { project->
 			into("$zipRootDir/samples/$project.name") {

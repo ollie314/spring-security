@@ -1,18 +1,21 @@
 /*
- * Copyright 2002-2012 the original author or authors.
+ * Copyright 2002-2016 the original author or authors.
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
- * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
- * specific language governing permissions and limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.springframework.security.concurrent;
 
-import static org.fest.assertions.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 
@@ -51,8 +54,11 @@ public class DelegatingSecurityContextRunnableTests {
 
 	private ExecutorService executor;
 
+	private SecurityContext originalSecurityContext;
+
 	@Before
 	public void setUp() throws Exception {
+		originalSecurityContext = SecurityContextHolder.createEmptyContext();
 		doAnswer(new Answer<Object>() {
 			public Object answer(InvocationOnMock invocation) throws Throwable {
 				assertThat(SecurityContextHolder.getContext()).isEqualTo(securityContext);
@@ -110,19 +116,11 @@ public class DelegatingSecurityContextRunnableTests {
 	// SEC-3031
 	@Test
 	public void callOnSameThread() throws Exception {
+		originalSecurityContext = securityContext;
+		SecurityContextHolder.setContext(originalSecurityContext);
 		executor = synchronousExecutor();
 		runnable = new DelegatingSecurityContextRunnable(delegate,
 				securityContext);
-		securityContext = SecurityContextHolder.createEmptyContext();
-		assertWrapped(runnable);
-	}
-
-	@Test
-	public void callOnSameThreadExplicitlyEnabled() throws Exception {
-		executor = synchronousExecutor();
-		DelegatingSecurityContextRunnable runnable = new DelegatingSecurityContextRunnable(delegate,
-				securityContext);
-		runnable.setEnableOnOriginalThread(true);
 		assertWrapped(runnable);
 	}
 
@@ -167,7 +165,7 @@ public class DelegatingSecurityContextRunnableTests {
 		submit.get();
 		verify(delegate).run();
 		assertThat(SecurityContextHolder.getContext()).isEqualTo(
-				SecurityContextHolder.createEmptyContext());
+				originalSecurityContext);
 	}
 
 	private static ExecutorService synchronousExecutor() {

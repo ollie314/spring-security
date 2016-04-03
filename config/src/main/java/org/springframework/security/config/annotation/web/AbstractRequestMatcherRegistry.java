@@ -25,6 +25,7 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.AnyRequestMatcher;
 import org.springframework.security.web.util.matcher.RegexRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.util.ObjectUtils;
 
 /**
  * A base class for registering {@link RequestMatcher}'s. For example, it might allow for
@@ -53,9 +54,23 @@ public abstract class AbstractRequestMatcherRegistry<C> {
 	 * {@link org.springframework.security.web.util.matcher.AntPathRequestMatcher}
 	 * instances.
 	 *
+	 * @param method the {@link HttpMethod} to use for any
+	 * {@link HttpMethod}.
+	 *
+	 * @return the object that is chained after creating the {@link RequestMatcher}
+	 */
+	public C antMatchers(HttpMethod method) {
+		return antMatchers(method, new String[] { "/**" });
+	}
+
+	/**
+	 * Maps a {@link List} of
+	 * {@link org.springframework.security.web.util.matcher.AntPathRequestMatcher}
+	 * instances.
+	 *
 	 * @param method the {@link HttpMethod} to use or {@code null} for any
 	 * {@link HttpMethod}.
-	 * @param antPatterns the ant patterns to create
+	 * @param antPatterns the ant patterns to create. If {@code null} or empty, then matches on nothing.
 	 * {@link org.springframework.security.web.util.matcher.AntPathRequestMatcher} from
 	 *
 	 * @return the object that is chained after creating the {@link RequestMatcher}

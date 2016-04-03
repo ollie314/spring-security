@@ -1,10 +1,11 @@
-/* Copyright 2004, 2005, 2006 Acegi Technology Pty Limited
+/*
+ * Copyright 2004, 2005, 2006 Acegi Technology Pty Limited
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,8 +15,8 @@
  */
 package sample.contact;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.List;
 
@@ -120,7 +121,7 @@ public class ContactManagerTests {
 		makeActiveUser("dianne"); // has ROLE_USER
 
 		List<Contact> contacts = contactManager.getAll();
-		assertEquals(4, contacts.size());
+		assertThat(contacts).hasSize(4);
 
 		assertContainsContact(4, contacts);
 		assertContainsContact(5, contacts);
@@ -138,7 +139,7 @@ public class ContactManagerTests {
 
 		List<Contact> contacts = contactManager.getAll();
 
-		assertEquals(4, contacts.size());
+		assertThat(contacts).hasSize(4);
 
 		assertContainsContact(1, contacts);
 		assertContainsContact(2, contacts);
@@ -161,7 +162,7 @@ public class ContactManagerTests {
 
 		List<Contact> contacts = contactManager.getAll();
 
-		assertEquals(5, contacts.size());
+		assertThat(contacts).hasSize(5);
 
 		assertContainsContact(4, contacts);
 		assertContainsContact(6, contacts);
