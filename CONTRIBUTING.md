@@ -29,20 +29,12 @@ Not sure what a pull request is, or how to submit one? Take a look at GitHub's e
 Is there already an issue that addresses your concern? Do a bit of searching in our [GitHub issues ](https://github.com/spring-projects/spring-security/issues) to see if you can find something similar. If not, please create a new issue before submitting a pull request unless the change is not a user facing issue.
 
 # Discuss non-trivial contribution ideas with committers
-If you're considering anything more than correcting a typo or fixing a minor bug , please discuss it on the [Spring Security Gitter](https://gitter.im/spring-projects/spring-security) before submitting a pull request. We're happy to provide guidance but please spend an hour or two researching the subject on your own including searching the forums for prior discussions.
+If you're considering anything more than correcting a typo or fixing a minor bug, please discuss it on the [Spring Security Gitter](https://gitter.im/spring-projects/spring-security) before submitting a pull request. We're happy to provide guidance but please spend an hour or two researching the subject on your own including searching the forums for prior discussions.
 
 # Sign the Contributor License Agreement
-If you have not previously done so, please fill out and submit the [SpringSource CLA form](https://support.springsource.com/spring_committer_signup). You'll receive a token when this process is complete. Keep track of this, you may be asked for it later!
 
-* For **Project** select _Spring Security_
-* For **Project Lead** enter _Rob Winch_
-* Note that emailing/postal mailing a signed copy is not necessary. Submission of the web form is all that is required.
-
-When you've completed the web form, simply add the following in a comment on your pull request:
-
-> I have signed and agree to the terms of the SpringSource Individual Contributor License Agreement.
-
-You do not need to include your token/id. Please add the statement above to all future pull requests as well, simply so the Spring Security team knows immediately that this process is complete.
+If you have not previously done so, please fill out and
+submit the [Contributor License Agreement](https://cla.pivotal.io/sign/spring).
 
 # Create your branch from master
 Create your topic branch to be submitted as a pull request from master. The Spring team will consider your pull request for backporting on a case-by-case basis; you don't need to worry about submitting anything for backporting.
@@ -112,11 +104,20 @@ e.g.
  */
 </pre>
 
-#Submit JUnit test cases for all behavior changes
+# Submit JUnit test cases for all behavior changes
 Search the codebase to find related unit tests and add additional `@Test` methods within. 
 
 1. Any new tests should end in the name Tests (note this is plural). For example, a valid name would be `FilterChainProxyTests`. An invalid name would be `FilterChainProxyTest`.
 2. New test methods should not start with test. This is an old JUnit3 convention and is not necessary since the method is annotated with @Test.
+
+# Update spring-security-x.y.rnc for schema changes
+Update the [RELAX NG](http://www.relaxng.org) schema `spring-security-x.y.rnc` instead of `spring-security-x.y.xsd` if you contribute changes to supported XML configuration. The XML schema file can be generated the following Gradle task:
+
+<pre>
+./gradlew spring-security-config:rncToXsd
+</pre>
+
+Changes to the XML schema will be overwritten by the Gradle build task.
 
 # Squash commits
 Use git rebase --interactive, git add --patch and other tools to "squash" multiple commits into atomic changes. In addition to the man pages for git, there are many resources online to help you understand how these tools work. Here is one: http://book.git-scm.com/4_interactive_rebasing.html.

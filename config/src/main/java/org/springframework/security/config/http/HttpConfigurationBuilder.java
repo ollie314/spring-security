@@ -15,13 +15,9 @@
  */
 package org.springframework.security.config.http;
 
-import static org.springframework.security.config.http.HttpSecurityBeanDefinitionParser.*;
-import static org.springframework.security.config.http.SecurityFilters.*;
-
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
 
@@ -69,6 +65,7 @@ import org.springframework.security.web.savedrequest.RequestCacheAwareFilter;
 import org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter;
 import org.springframework.security.web.session.ConcurrentSessionFilter;
 import org.springframework.security.web.session.SessionManagementFilter;
+import org.springframework.security.web.session.SimpleRedirectSessionInformationExpiredStrategy;
 import org.springframework.security.web.session.SimpleRedirectInvalidSessionStrategy;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.util.ClassUtils;
@@ -76,6 +73,9 @@ import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.util.xml.DomUtils;
 import org.w3c.dom.Element;
+
+import static org.springframework.security.config.http.HttpSecurityBeanDefinitionParser.*;
+import static org.springframework.security.config.http.SecurityFilters.*;
 
 /**
  * Stateful class which helps HttpSecurityBDP to create the configuration for the
@@ -97,7 +97,7 @@ class HttpConfigurationBuilder {
 	private static final String ATT_SESSION_AUTH_STRATEGY_REF = "session-authentication-strategy-ref";
 	private static final String ATT_SESSION_AUTH_ERROR_URL = "session-authentication-error-url";
 	private static final String ATT_SECURITY_CONTEXT_REPOSITORY = "security-context-repository-ref";
-
+	private static final String ATT_INVALID_SESSION_STRATEGY_REF = "invalid-session-strategy-ref";
 	private static final String ATT_DISABLE_URL_REWRITING = "disable-url-rewriting";
 
 	private static final String ATT_ACCESS_MGR = "access-decision-manager-ref";
@@ -127,6 +127,7 @@ class HttpConfigurationBuilder {
 	private BeanReference fsi;
 	private BeanReference requestCache;
 	private BeanDefinition addHeadersFilter;
+	private BeanMetadataElement corsFilter;
 	private BeanDefinition csrfFilter;
 	private BeanMetadataElement csrfLogoutHandler;
 	private BeanMetadataElement csrfAuthStrategy;
@@ -176,6 +177,7 @@ class HttpConfigurationBuilder {
 		createChannelProcessingFilter();
 		createFilterSecurityInterceptor(authenticationManager);
 		createAddHeadersFilter();
+		createCorsFilter();
 	}
 
 	private SessionCreationPolicy createPolicy(String createSession) {
@@ -287,6 +289,7 @@ class HttpConfigurationBuilder {
 
 		String sessionFixationAttribute = null;
 		String invalidSessionUrl = null;
+		String invalidSessionStrategyRef = null;
 		String sessionAuthStratRef = null;
 		String errorUrl = null;
 
@@ -302,12 +305,19 @@ class HttpConfigurationBuilder {
 			sessionFixationAttribute = sessionMgmtElt
 					.getAttribute(ATT_SESSION_FIXATION_PROTECTION);
 			invalidSessionUrl = sessionMgmtElt.getAttribute(ATT_INVALID_SESSION_URL);
+			invalidSessionStrategyRef = sessionMgmtElt.getAttribute(ATT_INVALID_SESSION_STRATEGY_REF);
+
 			sessionAuthStratRef = sessionMgmtElt
 					.getAttribute(ATT_SESSION_AUTH_STRATEGY_REF);
 			errorUrl = sessionMgmtElt.getAttribute(ATT_SESSION_AUTH_ERROR_URL);
 			sessionCtrlElt = DomUtils.getChildElementByTagName(sessionMgmtElt,
 					Elements.CONCURRENT_SESSIONS);
 			sessionControlEnabled = sessionCtrlElt != null;
+
+			if (StringUtils.hasText(invalidSessionUrl) && StringUtils.hasText(invalidSessionStrategyRef)) {
+				pc.getReaderContext().error(ATT_INVALID_SESSION_URL + " attribute cannot be used in combination with" +
+						" the " + ATT_INVALID_SESSION_STRATEGY_REF + " attribute.", sessionMgmtElt);
+			}
 
 			if (sessionControlEnabled) {
 				if (StringUtils.hasText(sessionAuthStratRef)) {
@@ -436,12 +446,16 @@ class HttpConfigurationBuilder {
 
 		}
 
+
+
 		if (StringUtils.hasText(invalidSessionUrl)) {
 			BeanDefinitionBuilder invalidSessionBldr = BeanDefinitionBuilder
 					.rootBeanDefinition(SimpleRedirectInvalidSessionStrategy.class);
 			invalidSessionBldr.addConstructorArgValue(invalidSessionUrl);
 			invalidSession = invalidSessionBldr.getBeanDefinition();
 			sessionMgmtFilter.addPropertyValue("invalidSessionStrategy", invalidSession);
+		} else if (StringUtils.hasText(invalidSessionStrategyRef)) {
+			sessionMgmtFilter.addPropertyReference("invalidSessionStrategy", invalidSessionStrategyRef);
 		}
 
 		sessionMgmtFilter.addConstructorArgReference(sessionAuthStratRef);
@@ -452,6 +466,7 @@ class HttpConfigurationBuilder {
 
 	private void createConcurrencyControlFilterAndSessionRegistry(Element element) {
 		final String ATT_EXPIRY_URL = "expired-url";
+		final String ATT_EXPIRED_SESSION_STRATEGY_REF = "expired-session-strategy-ref";
 		final String ATT_SESSION_REGISTRY_ALIAS = "session-registry-alias";
 		final String ATT_SESSION_REGISTRY_REF = "session-registry-ref";
 
@@ -487,10 +502,20 @@ class HttpConfigurationBuilder {
 		filterBuilder.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
 
 		String expiryUrl = element.getAttribute(ATT_EXPIRY_URL);
+		String expiredSessionStrategyRef = element.getAttribute(ATT_EXPIRED_SESSION_STRATEGY_REF);
+
+		if (StringUtils.hasText(expiryUrl) && StringUtils.hasText(expiredSessionStrategyRef)) {
+			pc.getReaderContext().error("Cannot use 'expired-url' attribute and 'expired-session-strategy-ref'" +
+					" attribute together.", source);
+		}
 
 		if (StringUtils.hasText(expiryUrl)) {
-			WebConfigUtils.validateHttpRedirect(expiryUrl, pc, source);
-			filterBuilder.addConstructorArgValue(expiryUrl);
+			BeanDefinitionBuilder expiredSessionBldr = BeanDefinitionBuilder
+					.rootBeanDefinition(SimpleRedirectSessionInformationExpiredStrategy.class);
+			expiredSessionBldr.addConstructorArgValue(expiryUrl);
+			filterBuilder.addConstructorArgValue(expiredSessionBldr.getBeanDefinition());
+		} else if (StringUtils.hasText(expiredSessionStrategyRef)) {
+			filterBuilder.addConstructorArgReference(expiredSessionStrategyRef);
 		}
 
 		pc.popAndRegisterContainingComponent();
@@ -611,7 +636,7 @@ class HttpConfigurationBuilder {
 			String requiredChannel = urlElt.getAttribute(ATT_REQUIRES_CHANNEL);
 
 			if (StringUtils.hasText(requiredChannel)) {
-				BeanDefinition matcher = matcherType.createMatcher(path, method);
+				BeanDefinition matcher = matcherType.createMatcher(pc, path, method);
 
 				RootBeanDefinition channelAttributes = new RootBeanDefinition(
 						ChannelAttributeFactory.class);
@@ -737,6 +762,11 @@ class HttpConfigurationBuilder {
 	private void createAddHeadersFilter() {
 		Element elmt = DomUtils.getChildElementByTagName(httpElt, Elements.HEADERS);
 		this.addHeadersFilter = new HeadersBeanDefinitionParser().parse(elmt, pc);
+	}
+
+	private void createCorsFilter() {
+		Element elmt = DomUtils.getChildElementByTagName(this.httpElt, Elements.CORS);
+		this.corsFilter = new CorsBeanDefinitionParser().parse(elmt, this.pc);
 
 	}
 
@@ -806,6 +836,10 @@ class HttpConfigurationBuilder {
 
 		if (sessionPolicy != SessionCreationPolicy.STATELESS) {
 			filters.add(new OrderDecorator(requestCacheAwareFilter, REQUEST_CACHE_FILTER));
+		}
+
+		if (this.corsFilter != null) {
+			filters.add(new OrderDecorator(this.corsFilter, CORS_FILTER));
 		}
 
 		if (addHeadersFilter != null) {

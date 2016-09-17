@@ -12,8 +12,8 @@ base64 =
 	## Whether a string should be base64 encoded
 	attribute base64 {xsd:boolean}
 request-matcher =
-	## Defines the strategy use for matching incoming requests. Currently the options are 'ant' (for ant path patterns), 'regex' for regular expressions and 'ciRegex' for case-insensitive regular expressions.
-	attribute request-matcher {"ant" | "regex" | "ciRegex"}
+	## Defines the strategy use for matching incoming requests. Currently the options are 'mvc' (for Spring MVC matcher), 'ant' (for ant path patterns), 'regex' for regular expressions and 'ciRegex' for case-insensitive regular expressions.
+	attribute request-matcher {"mvc" | "ant" | "regex" | "ciRegex"}
 port =
 	## Specifies an IP port number. Used to configure an embedded LDAP server, for example.
 	attribute port { xsd:positiveInteger }
@@ -303,7 +303,7 @@ http-firewall =
 
 http =
 	## Container element for HTTP security configuration. Multiple elements can now be defined, each with a specific pattern to which the enclosed security configuration applies. A pattern can also be configured to bypass Spring Security's filters completely by setting the "security" attribute to "none".
-	element http {http.attlist, (intercept-url* & access-denied-handler? & form-login? & openid-login? & x509? & jee? & http-basic? & logout? & session-management & remember-me? & anonymous? & port-mappings & custom-filter* & request-cache? & expression-handler? & headers? & csrf?) }
+	element http {http.attlist, (intercept-url* & access-denied-handler? & form-login? & openid-login? & x509? & jee? & http-basic? & logout? & session-management & remember-me? & anonymous? & port-mappings & custom-filter* & request-cache? & expression-handler? & headers? & csrf? & cors?) }
 http.attlist &=
 	## The request URL pattern which will be mapped to the filter chain created by this <http> element. If omitted, the filter chain will match all requests.
 	attribute pattern {xsd:token}?
@@ -319,7 +319,7 @@ http.attlist &=
 http.attlist &=
 	use-expressions?
 http.attlist &=
-	## Controls the eagerness with which an HTTP session is created by Spring Security classes. If not set, defaults to "ifRequired". If "stateless" is used, this implies that the application guarantees that it will not create a session. This differs from the use of "never" which mans that Spring Security will not create a session, but will make use of one if the application does.
+	## Controls the eagerness with which an HTTP session is created by Spring Security classes. If not set, defaults to "ifRequired". If "stateless" is used, this implies that the application guarantees that it will not create a session. This differs from the use of "never" which means that Spring Security will not create a session, but will make use of one if the application does.
 	attribute create-session {"ifRequired" | "always" | "never" | "stateless"}?
 http.attlist &=
 	## A reference to a SecurityContextRepository bean. This can be used to customize how the SecurityContext is stored between requests.
@@ -381,6 +381,9 @@ intercept-url.attlist &=
 intercept-url.attlist &=
 	## Used to specify that a URL must be accessed over http or https, or that there is no preference. The value should be "http", "https" or "any", respectively.
 	attribute requires-channel {xsd:token}?
+intercept-url.attlist &=
+	## The path to the servlet. This attribute is only applicable when 'request-matcher' is 'mvc'. In addition, the value is only required in the following 2 use cases: 1) There are 2 or more HttpServlet's registered in the ServletContext that have mappings starting with '/' and are different; 2) The pattern starts with the same value of a registered HttpServlet path, excluding the default (root) HttpServlet '/'.
+	attribute servlet-path {xsd:token}?
 
 logout =
 	## Incorporates a logout processing filter. Most web applications require a logout filter, although you may not require one if you write a controller to provider similar logic.
@@ -771,12 +774,21 @@ hsts-options.attlist &=
 	## The RequestMatcher instance to be used to determine if the header should be set. Default is if HttpServletRequest.isSecure() is true.
 	attribute request-matcher-ref { xsd:token }?
 
+cors =
+## Element for configuration of CorsFilter. If no CorsFilter or CorsConfigurationSource is specified a HandlerMappingIntrospector is used as the CorsConfigurationSource
+element cors { cors-options.attlist }
+cors-options.attlist &=
+	ref?
+cors-options.attlist &=
+	## Specifies a bean id that is a CorsConfigurationSource used to construct the CorsFilter to use
+	attribute configuration-source-ref {xsd:token}?
+
 hpkp =
 	## Adds support for HTTP Public Key Pinning (HPKP).
 	element hpkp {hpkp.pins,hpkp.attlist}
 hpkp.pins =
 	## The list with pins
- 	element pins {hpkp.pin+}
+	element pins {hpkp.pin+}
 hpkp.pin =
 	## A pin is specified using the base64-encoded SPKI fingerprint as value and the cryptographic hash algorithm as attribute
 	element pin {
@@ -830,10 +842,10 @@ frame-options.attlist &=
 	## Specify the strategy to use when ALLOW-FROM is chosen.
 	attribute strategy {"static","whitelist","regexp"}?
 frame-options.attlist &=
-	## Specify the a reference to the custom AllowFromStrategy to use when ALLOW-FROM is chosen.
+	## Specify a reference to the custom AllowFromStrategy to use when ALLOW-FROM is chosen.
 	ref?
 frame-options.attlist &=
-	## Specify the a value to use for the chosen strategy.
+	## Specify a value to use for the chosen strategy.
 	attribute value {xsd:string}?
 frame-options.attlist &=
 	## Specify the request parameter to use for the origin when using a 'whitelist' or 'regexp' based strategy. Default is 'from'.
@@ -895,4 +907,4 @@ position =
 	## The explicit position at which the custom-filter should be placed in the chain. Use if you are replacing a standard filter.
 	attribute position {named-security-filter}
 
-named-security-filter = "FIRST" | "CHANNEL_FILTER" | "SECURITY_CONTEXT_FILTER" | "CONCURRENT_SESSION_FILTER" | "WEB_ASYNC_MANAGER_FILTER" | "HEADERS_FILTER" | "CSRF_FILTER" | "LOGOUT_FILTER" | "X509_FILTER" | "PRE_AUTH_FILTER" | "CAS_FILTER" | "FORM_LOGIN_FILTER" | "OPENID_FILTER" | "LOGIN_PAGE_FILTER" | "DIGEST_AUTH_FILTER" | "BASIC_AUTH_FILTER" | "REQUEST_CACHE_FILTER" | "SERVLET_API_SUPPORT_FILTER" | "JAAS_API_SUPPORT_FILTER" | "REMEMBER_ME_FILTER" | "ANONYMOUS_FILTER" | "SESSION_MANAGEMENT_FILTER" | "EXCEPTION_TRANSLATION_FILTER" | "FILTER_SECURITY_INTERCEPTOR" | "SWITCH_USER_FILTER" | "LAST"
+named-security-filter = "FIRST" | "CHANNEL_FILTER" | "SECURITY_CONTEXT_FILTER" | "CONCURRENT_SESSION_FILTER" | "WEB_ASYNC_MANAGER_FILTER" | "HEADERS_FILTER" | "CORS_FILTER" | "CSRF_FILTER" | "LOGOUT_FILTER" | "X509_FILTER" | "PRE_AUTH_FILTER" | "CAS_FILTER" | "FORM_LOGIN_FILTER" | "OPENID_FILTER" | "LOGIN_PAGE_FILTER" | "DIGEST_AUTH_FILTER" | "BASIC_AUTH_FILTER" | "REQUEST_CACHE_FILTER" | "SERVLET_API_SUPPORT_FILTER" | "JAAS_API_SUPPORT_FILTER" | "REMEMBER_ME_FILTER" | "ANONYMOUS_FILTER" | "SESSION_MANAGEMENT_FILTER" | "EXCEPTION_TRANSLATION_FILTER" | "FILTER_SECURITY_INTERCEPTOR" | "SWITCH_USER_FILTER" | "LAST"

@@ -81,6 +81,7 @@ From a Spring Security perspective, the first thing you should do is follow the 
 .. <<appendix-faq-no-security-on-forward>>
 .. <<appendix-faq-method-security-in-web-context>>
 .. <<appendix-faq-no-filters-no-context>>
+.. <<appendix-faq-method-security-with-taglib>>
 
 [[appendix-faq-bad-credentials]]
 ==== When I try to log in, I get an error message that says "Bad Credentials". What's wrong?
@@ -175,7 +176,7 @@ Session management issues are a common source of forum questions. If you are dev
 [[appendix-faq-concurrent-session-same-browser]]
 ==== I'm using Spring Security's concurrent session control to prevent users from logging in more than once at a time. When I open another browser window after logging in, it doesn't stop me from logging in again. Why can I log in more than once?
 
-Browsers generally maintain a single session per browser instance. You cannot have two separate sessions at once. So if you log in again in another window or tab you are just reauthenticating in the same session. The server doesn't know anything about tabs, windows or browser instances. All it sees are HTTP requests and it ties those to a particular session according to the value of the the JSESSIONID cookie that they contain. When a user authenticates during a session, Spring Security's concurrent session control checks the number of__other authenticated sessions__ that they have. If they are already authenticated with the same session, then re-authenticating will have no effect.
+Browsers generally maintain a single session per browser instance. You cannot have two separate sessions at once. So if you log in again in another window or tab you are just reauthenticating in the same session. The server doesn't know anything about tabs, windows or browser instances. All it sees are HTTP requests and it ties those to a particular session according to the value of the JSESSIONID cookie that they contain. When a user authenticates during a session, Spring Security's concurrent session control checks the number of__other authenticated sessions__ that they have. If they are already authenticated with the same session, then re-authenticating will have no effect.
 
 
 [[appendix-faq-new-session-on-authentication]]
@@ -192,7 +193,7 @@ This happens because sessions created under HTTPS, for which the session cookie 
 
 ==== I'm not switching between HTTP and HTTPS but my session is still getting lost
 
-Sessions are maintained either by exchanging a session cookie or by adding the a `jsessionid` parameter to URLs (this happens automatically if you are using JSTL to output URLs, or if you call `HttpServletResponse.encodeUrl` on URLs (before a redirect, for example). If clients have cookies disabled, and you are not rewriting URLs to include the `jsessionid`, then the session will be lost. Note that the use of cookies is preferred for security reasons, as it does not expose the session information in the URL.
+Sessions are maintained either by exchanging a session cookie or by adding a `jsessionid` parameter to URLs (this happens automatically if you are using JSTL to output URLs, or if you call `HttpServletResponse.encodeUrl` on URLs (before a redirect, for example). If clients have cookies disabled, and you are not rewriting URLs to include the `jsessionid`, then the session will be lost. Note that the use of cookies is preferred for security reasons, as it does not expose the session information in the URL.
 
 [[appendix-faq-session-listener-missing]]
 ==== I'm trying to use the concurrent session-control support but it won't let me log back in, even if I'm sure I've logged out and haven't exceeded the allowed sessions.
@@ -238,6 +239,10 @@ Generally we would recommend applying method security at the service layer rathe
 
 If you have excluded the request from the security filter chain using the attribute `filters='none'` in the `<intercept-url>` element that matches the URL pattern, then the `SecurityContextHolder` will not be populated for that request. Check the debug log to see whether the request is passing through the filter chain. (You are reading the debug log, right?).
 
+[[appendix-faq-method-security-with-taglib]]
+==== The authorize JSP Tag doesn't respect my method security annotations when using the URL attribute.
+
+Method security will not hide links when using the `url` attribute in `<sec:authorize>` because we cannot readily reverse engineer what URL is mapped to what controller endpoint as controllers can rely on headers, current user, etc to determine what method to invoke.
 
 [[appendix-faq-architecture]]
 === Spring Security Architecture Questions

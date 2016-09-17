@@ -17,7 +17,6 @@
 package org.springframework.security.web.access;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
 
 import org.junit.Before;
@@ -91,7 +90,7 @@ public class DefaultWebInvocationPrivilegeEvaluatorTests {
 	}
 
 	@Test
-	public void allowsAccessIfAccessDecisionMangerDoes() throws Exception {
+	public void allowsAccessIfAccessDecisionManagerDoes() throws Exception {
 		Authentication token = new TestingAuthenticationToken("test", "Password",
 				"MOCK_INDEX");
 		DefaultWebInvocationPrivilegeEvaluator wipe = new DefaultWebInvocationPrivilegeEvaluator(
@@ -101,7 +100,7 @@ public class DefaultWebInvocationPrivilegeEvaluatorTests {
 
 	@SuppressWarnings("unchecked")
 	@Test
-	public void deniesAccessIfAccessDecisionMangerDoes() throws Exception {
+	public void deniesAccessIfAccessDecisionManagerDoes() throws Exception {
 		Authentication token = new TestingAuthenticationToken("test", "Password",
 				"MOCK_INDEX");
 		DefaultWebInvocationPrivilegeEvaluator wipe = new DefaultWebInvocationPrivilegeEvaluator(

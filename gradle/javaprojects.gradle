@@ -29,11 +29,13 @@ ext.seleniumVersion = '2.44.0'
 ext.servletApiVersion = '3.0.1'
 ext.slf4jVersion = '1.7.7'
 ext.spockVersion = '0.7-groovy-2.0'
-ext.springDataCommonsVersion = '1.9.1.RELEASE'
-ext.springDataJpaVersion = '1.7.1.RELEASE'
-ext.springDataRedisVersion = '1.4.1.RELEASE'
-ext.springSessionVersion = '1.0.0.RELEASE'
-ext.thymeleafVersion = '2.1.4.RELEASE'
+ext.springDataCommonsVersion = '1.12.2.RELEASE'
+ext.springDataJpaVersion = '1.10.2.RELEASE'
+ext.springDataRedisVersion = '1.7.2.RELEASE'
+ext.springSessionVersion = '1.2.1.RELEASE'
+ext.springBootVersion = '1.4.0.RELEASE'
+ext.thymeleafVersion = '2.1.5.RELEASE'
+ext.jsonassertVersion = '1.3.0'
 
 ext.spockDependencies = [
 	dependencies.create("org.spockframework:spock-spring:$spockVersion") {
@@ -162,7 +164,7 @@ configurations.all {
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
 project.tasks.matching { it instanceof Test && it.name != 'integrationTest' }.all {
-	jvmArgs = ['-ea', '-Xmx500m']
+	jvmArgs = ['-ea', '-Xmx500m', '-XX:MaxPermSize=512m']
 	maxParallelForks = guessMaxForks()
 	logging.captureStandardOutput(LogLevel.INFO)
 }
@@ -214,8 +216,16 @@ javadoc {
 			'Spring Security ACL':['org.springframework.security.acls*'],
 			'Spring Security Config':['org.springframework.security.config*'],
 			'Spring Security Taglibs':['org.springframework.security.taglibs*'],
+			'Spring Security Test':['org.springframework.security.test*'],
 		]
 		addStringOption('-quiet')
+	}
+}
+
+if (JavaVersion.current().isJava8Compatible()) {
+	tasks.withType(Javadoc) {
+		// Turn off doclint in JDK 8 Javadoc (too strict on checks)
+		options.addStringOption('Xdoclint:none', '-quiet')
 	}
 }
 

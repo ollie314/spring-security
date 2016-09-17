@@ -23,7 +23,7 @@ Finally, welcome to the Spring Security <<community,community>>.
 
 
 [[getting-started]]
-= Getting Started
+== Getting Started
 The later parts of this guide provide an in-depth discussion of the framework architecture and implementation classes, which you need to understand if you want to do any serious customization. In this part, we'll introduce Spring Security 4.0, give a brief overview of the project's history and take a slightly gentler look at how to get started using the framework. In particular, we'll look at namespace configuration which provides a much simpler way of securing your application compared to the traditional Spring bean approach where you have to wire up all the implementation classes individually.
 
 We'll also take a look at the sample applications that are available. It's worth trying to run these and experimenting with them a bit even before you read the later sections - you can dip back into them as your understanding of the framework increases. Please also check out the http://spring.io/spring-security[project website] as it has useful information on building the project, plus links to articles, videos and tutorials.
@@ -356,6 +356,11 @@ Spring Security's CAS client integration. If you want to use Spring Security web
 OpenID web authentication support. Used to authenticate users against an external OpenID server. `org.springframework.security.openid`. Requires OpenID4Java.
 
 
+[[spring-security-test]]
+===== Test - spring-security-test.jar
+Support for testing with Spring Security.
+
+
 [[get-source]]
 ==== Checking out the Source
 Since Spring Security is an Open Source project, we'd strongly encourage you to check out the source code using git. This will give you full access to all the sample applications and you can build the most up to date version of the project easily. Having the source for a project is also a huge help in debugging. Exception stack traces are no longer obscure black-box issues but you can get straight to the line that's causing the problem and work out what's happening. The source is the ultimate documentation for a project and often the simplest place to find out how something actually works.
@@ -372,23 +377,75 @@ This will give you access to the entire project history (including all releases 
 [[new]]
 == What's New in Spring Security 4.1
 
-There were https://github.com/spring-projects/spring-security/milestones/4.1.0%20RC1[100+ issues] fixed in Spring Security 4.1.
-You can find the highlights below:
+There were https://github.com/spring-projects/spring-security/issues?utf8=%E2%9C%93&q=milestone%3A%224.1.0+RC1%22[100+ RC1 issues] and https://github.com/spring-projects/spring-security/issues?utf8=%E2%9C%93&q=milestone%3A%224.1.0+RC2%22[60+ RC2 issues] fixed in Spring Security 4.1.
 
-* <<el-access-web-path-variables,Path Variables in Web Security Expressions>>
-* <<headers-csp,Content Security Policy (CSP)>>
-* <<headers-hpkp,HTTP Public Key Pinning (HPKP)>>
-* Added `ForwardAuthenticationFailureHandler` & `ForwardAuthenticationSuccessHandler`
-* SCrypt support with `SCryptPasswordEncoder`
-* Meta Annotation Support
-** <<test-method-meta-annotations,Test Meta Annotations>>
-** <<method-security-meta-annotations,Method Security Meta Annotations>>
-* <<test-method-withanonymoususer,@WithAnonymousUser>>
-* <<test-method-withuserdetails,@WithUserDetails>> allows specifying the `UserDetailsService` bean name
+Here is the list of improvements:
+
+=== Java Configuration Improvements
 * <<jc-authentication-userdetailsservice,Simplified UserDetailsService Java Configuration>>
 * <<jc-authentication-authenticationprovider,Simplified AuthenticationProvider Java Configuration>>
+* Configurable Content Negotiating `LogoutSuccessHandler`(s) via `LogoutConfigurer`
+* Configurable `InvalidSessionStrategy` via `SessionManagementConfigurer`
+* Ability to add a `Filter` at a specific location in the chain using `HttpSecurity.addFilterAt`
+
+=== Web Application Security Improvements
+* <<mvc-requestmatcher,MvcRequestMatcher>>
+* <<headers-csp,Content Security Policy (CSP)>>
+* <<headers-hpkp,HTTP Public Key Pinning (HPKP)>>
+* <<cors,CORS>>
+* <<csrf-cookie,CookieCsrfTokenRepository>> provides simple AngularJS & CSRF integration
+* Added `ForwardAuthenticationFailureHandler` & `ForwardAuthenticationSuccessHandler`
+* <<mvc-authentication-principal,AuthenticationPrincipal>> supports expression attribute to support transforming the `Authentication.getPrincipal()` object (i.e. handling immutable custom `User` domain objects)
+
+=== Authorization Improvements
+* <<el-access-web-path-variables,Path Variables in Web Security Expressions>>
+* <<method-security-meta-annotations,Method Security Meta Annotations>>
+
+=== Crypto Module Improvements
+* SCrypt support with `SCryptPasswordEncoder`
+* PBKDF2 support with <<spring-security-crypto-passwordencoders,Pbkdf2PasswordEncoder>>
+* New `BytesEncryptor` implementation for BouncyCastle using _AES/CBC/PKCS5Padding_ and _AES/GCM/NoPadding_ algorithms
+
+=== Testing Improvements
+* <<test-method-withanonymoususer,@WithAnonymousUser>>
+* <<test-method-withuserdetails,@WithUserDetails>> allows specifying the `UserDetailsService` bean name
+* <<test-method-meta-annotations,Test Meta Annotations>>
+* Ability to mock a list of `GrantedAuthority` using `SecurityMockMvcResultMatchers.withAuthorities`
+
+=== General Improvements
+* Re-organization of sample projects
 * Moved to GitHub issues
 
+[[samples]]
+== Samples and Guides (Start Here)
+
+If you are looking to get started with Spring Security, the best place to start is our Sample Applications.
+
+.Sample Applications
+|===
+| Source | Description | Guide
+
+| {gh-samples-url}/javaconfig/helloworld[Hello Spring Security]
+| Demonstrates how to integrate Spring Security with an existing application using Java-based configuration.
+| link:../../guides/html5/helloworld-javaconfig.html[Hello Spring Security Guide]
+
+| {gh-samples-url}/boot/helloworld[Hello Spring Security Boot]
+| Demonstrates how to integrate Spring Security with an existing Spring Boot application.
+| link:../../guides/html5/helloworld-boot.html[Hello Spring Security Boot Guide]
+
+| {gh-samples-url}/xml/helloworld[Hello Spring Security XML]
+| Demonstrates how to integrate Spring Security with an existing application using XML-based configuration.
+| link:../../guides/html5/helloworld-xml.html[Hello Spring Security XML Guide]
+
+| {gh-samples-url}/javaconfig/hellomvc[Hello Spring MVC Security]
+| Demonstrates how to integrate Spring Security with an existing Spring MVC application.
+| link:../../guides/html5/hellomvc-javaconfig.html[Hello Spring MVC Security Guide]
+
+| {gh-samples-url}/javaconfig/form[Custom Login Form]
+| Demonstrates how to create a custom login form.
+| link:../../guides/html5/form-javaconfig.html[Custom Login Form Guide]
+
+|===
 
 [[jc]]
 == Java Configuration
@@ -401,7 +458,7 @@ NOTE: Spring Security provides https://github.com/spring-projects/spring-securit
 
 === Hello Web Security Java Configuration
 
-The first step is to create our Spring Security Java Configuration. The configuration creates a Servlet Filter known as the `springSecurityFilterChain` which is responsible for all the security (protecting the application URLs, validating submitted username and passwords, redirecting to the log in form, etc) within your application. You can find the most basic example of a Spring Security Java configuration below:
+The first step is to create our Spring Security Java Configuration. The configuration creates a Servlet Filter known as the `springSecurityFilterChain` which is responsible for all the security (protecting the application URLs, validating submitted username and passwords, redirecting to the log in form, etc) within your application. You can find the most basic example of a Spring Security Java Configuration below:
 
 [[jc-hello-wsca]]
 [source,java]
@@ -413,7 +470,7 @@ import org.springframework.security.config.annotation.authentication.builders.*;
 import org.springframework.security.config.annotation.web.configuration.*;
 
 @EnableWebSecurity
-public class SecurityConfig extends WebSecurityConfigurerAdapter {
+public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
 	@Autowired
 	public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
@@ -456,7 +513,7 @@ The next step is to register the `springSecurityFilterChain` with the war. This 
 
 ==== AbstractSecurityWebApplicationInitializer without Existing Spring
 
-If you are not using Spring or Spring MVC, you will need to pass in the `SecurityConfig` into the superclass to ensure the configuration is picked up. You can find an example below:
+If you are not using Spring or Spring MVC, you will need to pass in the `WebSecurityConfig` into the superclass to ensure the configuration is picked up. You can find an example below:
 
 [source,java]
 ----
@@ -466,7 +523,7 @@ public class SecurityWebApplicationInitializer
 	extends AbstractSecurityWebApplicationInitializer {
 
 	public SecurityWebApplicationInitializer() {
-		super(SecurityConfig.class);
+		super(WebSecurityConfig.class);
 	}
 }
 ----
@@ -474,7 +531,7 @@ public class SecurityWebApplicationInitializer
 The `SecurityWebApplicationInitializer` will do the following things:
 
 * Automatically register the springSecurityFilterChain Filter for every URL in your application
-* Add a ContextLoaderListener that loads the <<jc-hello-wsca,SecurityConfig>>.
+* Add a ContextLoaderListener that loads the <<jc-hello-wsca,WebSecurityConfig>>.
 
 ==== AbstractSecurityWebApplicationInitializer with Spring MVC
 
@@ -490,7 +547,7 @@ public class SecurityWebApplicationInitializer
 }
 ----
 
-This would simply only register the springSecurityFilterChain Filter for every URL in your application. After that we would ensure that `SecurityConfig` was loaded in our existing ApplicationInitializer. For example, if we were using Spring MVC it would be added in the `getRootConfigClasses()`
+This would simply only register the springSecurityFilterChain Filter for every URL in your application. After that we would ensure that `WebSecurityConfig` was loaded in our existing ApplicationInitializer. For example, if we were using Spring MVC it would be added in the `getRootConfigClasses()`
 
 [[message-web-application-inititializer-java]]
 [source,java]
@@ -500,7 +557,7 @@ public class MvcWebApplicationInitializer extends
 
 	@Override
 	protected Class<?>[] getRootConfigClasses() {
-		return new Class[] { SecurityConfig.class };
+		return new Class[] { WebSecurityConfig.class };
 	}
 
 	// ... other overrides ...
@@ -510,7 +567,7 @@ public class MvcWebApplicationInitializer extends
 [[jc-httpsecurity]]
 === HttpSecurity
 
-Thus far our <<jc-hello-wsca,SecurityConfig>> only contains information about how to authenticate our users. How does Spring Security know that we want to require all users to be authenticated? How does Spring Security know we want to support form based authentication? The reason for this is that the `WebSecurityConfigurerAdapter` provides a default configuration in the `configure(HttpSecurity http)` method that looks like:
+Thus far our <<jc-hello-wsca,WebSecurityConfig>> only contains information about how to authenticate our users. How does Spring Security know that we want to require all users to be authenticated? How does Spring Security know we want to support form based authentication? The reason for this is that the `WebSecurityConfigurerAdapter` provides a default configuration in the `configure(HttpSecurity http)` method that looks like:
 
 [source,java]
 ----
@@ -544,7 +601,7 @@ You will notice that this configuration is quite similar the XML Namespace confi
 
 The Java Configuration equivalent of closing an XML tag is expressed using the `and()` method which allows us to continue configuring the parent. If you read the code it also makes sense. I want to configure authorized requests __and__ configure form login __and__ configure HTTP Basic authentication.
 
-However, Java configuration has different defaults URLs and parameters. Keep this in mind when creating custom login pages. The result is that our URLs are more RESTful. Additionally, it is not quite so obvious we are using Spring Security which helps to prevent https://www.owasp.org/index.php/Information_Leak_(information_disclosure)[information leaks]. For example:
+However, Java Configuration has different defaults URLs and parameters. Keep this in mind when creating custom login pages. The result is that our URLs are more RESTful. Additionally, it is not quite so obvious we are using Spring Security which helps to prevent https://www.owasp.org/index.php/Information_Leak_(information_disclosure)[information leaks]. For example:
 
 [[jc-form]]
 === Java Configuration and Form Login
@@ -646,7 +703,7 @@ URL `/logout` will log the user out by:
 - Invalidating the HTTP Session
 - Cleaning up any RememberMe authentication that was configured
 - Clearing the `SecurityContextHolder`
-- Redirect to `/login?success`
+- Redirect to `/login?logout`
 
 Similar to configuring login capabilities, however, you also have various options
 to further customize your logout requirements:
@@ -668,10 +725,10 @@ protected void configure(HttpSecurity http) throws Exception {
 ----
 
 <1> Provides logout support. This is automatically applied when using `WebSecurityConfigurerAdapter`.
-<2> The URL that triggers log out to occur (default is `/logout`). If CSRF protection is enabled (default), then the request must also be a POST. For for information, please consult the {security-api-url}org/springframework/security/config/annotation/web/configurers/LogoutConfigurer.html#logoutUrl(java.lang.String)[JavaDoc].
-<3> The URL to redirect to after logout has occurred. The default is `/login?logout`. For for information, please consult the {security-api-url}org/springframework/security/config/annotation/web/configurers/LogoutConfigurer.html#logoutSuccessUrl(java.lang.String)[JavaDoc].
-<4> Let's you specify a custom `LogoutSuccessHandler`. If this is specified, `logoutSuccessUrl()` is ignored. For for information, please consult the {security-api-url}org/springframework/security/config/annotation/web/configurers/LogoutConfigurer.html#logoutSuccessHandler(org.springframework.security.web.authentication.logout.LogoutSuccessHandler)[JavaDoc].
-<5> Specify whether to invalidate the `HttpSession` at the time of logout. This is *true* by default. Configures the `SecurityContextLogoutHandler` under the covers.  For for information, please consult the {security-api-url}org/springframework/security/config/annotation/web/configurers/LogoutConfigurer.html#invalidateHttpSession(boolean)[JavaDoc].
+<2> The URL that triggers log out to occur (default is `/logout`). If CSRF protection is enabled (default), then the request must also be a POST. For more information, please consult the {security-api-url}org/springframework/security/config/annotation/web/configurers/LogoutConfigurer.html#logoutUrl-java.lang.String-[JavaDoc].
+<3> The URL to redirect to after logout has occurred. The default is `/login?logout`. For more information, please consult the {security-api-url}org/springframework/security/config/annotation/web/configurers/LogoutConfigurer.html#logoutSuccessUrl-java.lang.String-[JavaDoc].
+<4> Let's you specify a custom `LogoutSuccessHandler`. If this is specified, `logoutSuccessUrl()` is ignored. For more information, please consult the {security-api-url}org/springframework/security/config/annotation/web/configurers/LogoutConfigurer.html#logoutSuccessHandler-org.springframework.security.web.authentication.logout.LogoutSuccessHandler-[JavaDoc].
+<5> Specify whether to invalidate the `HttpSession` at the time of logout. This is *true* by default. Configures the `SecurityContextLogoutHandler` under the covers.  For more information, please consult the {security-api-url}org/springframework/security/config/annotation/web/configurers/LogoutConfigurer.html#invalidateHttpSession-boolean-[JavaDoc].
 <6> Adds a `LogoutHandler`. `SecurityContextLogoutHandler` is added as the last `LogoutHandler` by default.
 <7> Allows specifying the names of cookies to be removed on logout success. This is a shortcut for adding a `CookieClearingLogoutHandler` explicitly.
 
@@ -766,7 +823,7 @@ public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception 
 [[jc-authentication-jdbc]]
 ==== JDBC Authentication
 
-You can find the updates to suppport JDBC based authentication. The example below assumes that you have already defined a `DataSource` within your application. The https://github.com/spring-projects/spring-security/tree/master/samples/jdbc-jc[jdbc-jc sample] provides a complete example of using JDBC based authentication.
+You can find the updates to suppport JDBC based authentication. The example below assumes that you have already defined a `DataSource` within your application. The https://github.com/spring-projects/spring-security/tree/master/samples/javaconfig/jdbc[jdbc-javaconfig] sample provides a complete example of using JDBC based authentication.
 
 [source,java]
 ----
@@ -786,7 +843,7 @@ public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception 
 
 ==== LDAP Authentication
 
-You can find the updates to suppport LDAP based authentication. The https://github.com/spring-projects/spring-security/tree/master/samples/ldap-jc[ldap-jc sample] provides a complete example of using LDAP based authentication.
+You can find the updates to suppport LDAP based authentication. The https://github.com/spring-projects/spring-security/tree/master/samples/javaconfig/ldap[ldap-javaconfig] sample provides a complete example of using LDAP based authentication.
 
 [source,java]
 ----
@@ -948,7 +1005,7 @@ public class MultiHttpSecurityConfig {
 [[jc-method]]
 === Method Security
 
-From version 2.0 onwards Spring Security has improved support substantially for adding security to your service layer methods. It provides support for JSR-250 annotation security as well as the framework's original `@Secured` annotation. From 3.0 you can also make use of new <<el-access,expression-based annotations>>. You can apply security to a single bean, using the intercept-methods element to decorate the bean declaration, or you can secure multiple beans across the entire service layer using the AspectJ style pointcuts.
+From version 2.0 onwards Spring Security has improved support substantially for adding security to your service layer methods. It provides support for JSR-250 annotation security as well as the framework's original `@Secured` annotation. From 3.0 you can also make use of new <<el-access,expression-based annotations>>. You can apply security to a single bean, using the `intercept-methods` element to decorate the bean declaration, or you can secure multiple beans across the entire service layer using the AspectJ style pointcuts.
 
 ==== EnableGlobalMethodSecurity
 
@@ -1018,7 +1075,7 @@ public Account post(Account account, double amount);
 
 ==== GlobalMethodSecurityConfiguration
 
-Sometimes you may need to perform operations that are more complicated than are possible with the `@EnableGlobalMethodSecurity` annotation allow. For these instances, you can extend the `GlobalMethodSecurityConfiguration` ensuring that the `@EnableGlobalMethodSecurity` annotation is present on your subclass. For example, if you wanted to provide a custom `MethodSecurityExpressionHander`, you could use the following configuration:
+Sometimes you may need to perform operations that are more complicated than are possible with the `@EnableGlobalMethodSecurity` annotation allow. For these instances, you can extend the `GlobalMethodSecurityConfiguration` ensuring that the `@EnableGlobalMethodSecurity` annotation is present on your subclass. For example, if you wanted to provide a custom `MethodSecurityExpressionHandler`, you could use the following configuration:
 
 [source,java]
 ----
@@ -1027,7 +1084,7 @@ public class MethodSecurityConfig extends GlobalMethodSecurityConfiguration {
 	@Override
 	protected MethodSecurityExpressionHandler createExpressionHandler() {
 		// ... create and return custom MethodSecurityExpressionHandler ...
-		return expressionHander;
+		return expressionHandler;
 	}
 }
 ----
@@ -1090,7 +1147,7 @@ xsi:schemaLocation="http://www.springframework.org/schema/beans
 </beans>
 ----
 
-In many of the examples you will see (and in the sample) applications, we
+In many of the examples you will see (and in the sample applications), we
 			will often use "security" as the default namespace rather than "beans", which means we
 			can omit the prefix on all the security namespace elements, making the content easier to
 			read. You may also want to do this if you have your application context divided up into
@@ -1302,7 +1359,7 @@ If you want to use a database, then you can use
 </authentication-manager>
 ----
 
-Where "securityDataSource" is the name of a `DataSource` bean in the application context, pointing at a database containing the standard Spring Security <<db_schema_users_authorities,user data tables>>. Alternatively, you could configure a Spring Security `JdbcDaoImpl` bean and point at that using the `user-service-ref` attribute:
+Where "securityDataSource" is the name of a `DataSource` bean in the application context, pointing at a database containing the standard Spring Security <<user-schema,user data tables>>. Alternatively, you could configure a Spring Security `JdbcDaoImpl` bean and point at that using the `user-service-ref` attribute:
 
 [source,xml]
 ----
@@ -1946,7 +2003,7 @@ This design offers maximum deployment time flexibility, as you can simply copy y
 
 [[core-components]]
 === Core Components
-In Spring Security 3.0, the contents of the `spring-security-core` jar were stripped down to the bare minimum. It no longer contains any code related to web-application security, LDAP or namespace configuration. We'll take a look here at some of the Java types that you'll find in the core module. They represent the building blocks of the the framework, so if you ever need to go beyond a simple namespace configuration then it's important that you understand what they are, even if you don't actually need to interact with them directly.
+In Spring Security 3.0, the contents of the `spring-security-core` jar were stripped down to the bare minimum. It no longer contains any code related to web-application security, LDAP or namespace configuration. We'll take a look here at some of the Java types that you'll find in the core module. They represent the building blocks of the framework, so if you ever need to go beyond a simple namespace configuration then it's important that you understand what they are, even if you don't actually need to interact with them directly.
 
 
 ====  SecurityContextHolder, SecurityContext and Authentication Objects
@@ -2168,7 +2225,7 @@ The `AuthenticationEntryPoint` is responsible for step three in the above list. 
 
 
 ==== Authentication Mechanism
-Once your browser submits your authentication credentials (either as an HTTP form post or HTTP header) there needs to be something on the server that"collects" these authentication details. By now we're at step six in the above list. In Spring Security we have a special name for the function of collecting authentication details from a user agent (usually a web browser), referring to it as the "authentication mechanism". Examples are form-base login and Basic authentication. Once the authentication details have been collected from the user agent, an `Authentication` "request" object is built and then presented to the `AuthenticationManager`.
+Once your browser submits your authentication credentials (either as an HTTP form post or HTTP header) there needs to be something on the server that "collects" these authentication details. By now we're at step six in the above list. In Spring Security we have a special name for the function of collecting authentication details from a user agent (usually a web browser), referring to it as the "authentication mechanism". Examples are form-base login and Basic authentication. Once the authentication details have been collected from the user agent, an `Authentication` "request" object is built and then presented to the `AuthenticationManager`.
 
 After the authentication mechanism receives back the fully-populated `Authentication` object, it will deem the request valid, put the `Authentication` into the `SecurityContextHolder`, and cause the original request to be retried (step seven above). If, on the other hand, the `AuthenticationManager` rejected the request, the authentication mechanism will ask the user agent to retry (step two above).
 
@@ -2235,7 +2292,7 @@ Only developers contemplating an entirely new way of intercepting and authorizin
 
 [[localization]]
 === Localization
-Spring Security supports localization of exception messages that end users are likely to see. If your application is designed for English-speaking users, you don't need to do anything as by default all Security Security messages are in English. If you need to support other locales, everything you need to know is contained in this section.
+Spring Security supports localization of exception messages that end users are likely to see. If your application is designed for English-speaking users, you don't need to do anything as by default all Security messages are in English. If you need to support other locales, everything you need to know is contained in this section.
 
 All exception messages can be localized, including messages related to authentication failures and access being denied (authorization failures). Exceptions and logging messages that are focused on developers or system deployers (including incorrect attributes, interface contract violations, using incorrect constructors, startup time validation, debug-level logging) are not localized and instead are hard-coded in English within Spring Security's code.
 
@@ -2411,7 +2468,7 @@ Bcrypt automatically generates a random salt value for each password when it is 
 
 [NOTE]
 ====
-The legacy approach to handling salt was to inject a `SaltSource` into the `DaoAuthenticationProvider`, which would obtain a salt value for a particular user and pass it to the `PasswordEncoder`. Using bcrypt means you don't have worry about the details of salt handling (such as where the the value is stored), as it is all done internally. So we'd strongly recommend you use bcrypt unless you already have a system in place which stores the salt separately.
+The legacy approach to handling salt was to inject a `SaltSource` into the `DaoAuthenticationProvider`, which would obtain a salt value for a particular user and pass it to the `PasswordEncoder`. Using bcrypt means you don't have worry about the details of salt handling (such as where the value is stored), as it is all done internally. So we'd strongly recommend you use bcrypt unless you already have a system in place which stores the salt separately.
 ====
 
 ====  Hashing and Authentication
@@ -2715,7 +2772,7 @@ The login form simply contains `username` and `password` input fields, and posts
 
 [[form-login-flow-handling]]
 ==== Application Flow on Authentication Success and Failure
-The filter calls the configured `AuthenticationManager` to process each authentication request. The destination following a successful authentication or an authentication failure is controlled by the `AuthenticationSuccessHandler` and `AuthenticationFailureHandler` strategy interfaces, respectively. The filter has properties which allow you to set these so you can customize the behaviour completely  footnote:[In versions prior to 3.0, the application flow at this point had evolved to a stage was controlled by a mix of properties on this class and strategy plugins. The decision was made for 3.0 to refactor the code to make these two strategies entirely responsible.]. Some standard implementations are supplied such as `SimpleUrlAuthenticationSuccessHandler`, `SavedRequestAwareAuthenticationSuccessHandler`, `SimpleUrlAuthenticationFailureHandler` and `ExceptionMappingAuthenticationFailureHandler`. Have a look at the Javadoc for these classes and also for `AbstractAuthenticationProcessingFilter` to get an overview of how they work and the supported features.
+The filter calls the configured `AuthenticationManager` to process each authentication request. The destination following a successful authentication or an authentication failure is controlled by the `AuthenticationSuccessHandler` and `AuthenticationFailureHandler` strategy interfaces, respectively. The filter has properties which allow you to set these so you can customize the behaviour completely  footnote:[In versions prior to 3.0, the application flow at this point had evolved to a stage was controlled by a mix of properties on this class and strategy plugins. The decision was made for 3.0 to refactor the code to make these two strategies entirely responsible.]. Some standard implementations are supplied such as `SimpleUrlAuthenticationSuccessHandler`, `SavedRequestAwareAuthenticationSuccessHandler`, `SimpleUrlAuthenticationFailureHandler`, `ExceptionMappingAuthenticationFailureHandler` and `DelegatingAuthenticationFailureHandler`. Have a look at the Javadoc for these classes and also for `AbstractAuthenticationProcessingFilter` to get an overview of how they work and the supported features.
 
 If authentication is successful, the resulting `Authentication` object will be placed into the `SecurityContextHolder`. The configured `AuthenticationSuccessHandler` will then be called to either redirect or forward the user to the appropriate destination. By default a `SavedRequestAwareAuthenticationSuccessHandler` is used, which means that the user will be redirected to the original destination they requested before they were asked to login.
 
@@ -2728,7 +2785,7 @@ If authentication fails, the configured `AuthenticationFailureHandler` will be i
 
 [[servletapi]]
 == Servlet API integration
-This section describes how Spring Security is integrated with the Servlet API. The https://github.com/spring-projects/spring-security/tree/master/samples/servletapi-xml[servletapi-xml] sample application demonstrates the usage of each of these methods.
+This section describes how Spring Security is integrated with the Servlet API. The https://github.com/spring-projects/spring-security/tree/master/samples/xml/servletapi[servletapi-xml] sample application demonstrates the usage of each of these methods.
 
 
 [[servletapi-25]]
@@ -2762,7 +2819,7 @@ It should be noted that it is typically bad practice to perform so much logic th
 
 [[servletapi-user-in-role]]
 ==== HttpServletRequest.isUserInRole(String)
-The http://docs.oracle.com/javaee/6/api/javax/servlet/http/HttpServletRequest.html#isUserInRole(java.lang.String)[HttpServletRequest.isUserInRole(String)] will determine if `SecurityContextHolder.getContext().getAuthentication().getAuthorities()` contains a `GrantedAuthority` with the role passed into `isUserInRole(String)`. Typically users should not pass in the "ROLE_" prefix into this method since it is added automatically. For example, if you want to determine if the current user has the authority "ROLE_ADMIN", you could use the the following:
+The http://docs.oracle.com/javaee/6/api/javax/servlet/http/HttpServletRequest.html#isUserInRole(java.lang.String)[HttpServletRequest.isUserInRole(String)] will determine if `SecurityContextHolder.getContext().getAuthentication().getAuthorities()` contains a `GrantedAuthority` with the role passed into `isUserInRole(String)`. Typically users should not pass in the "ROLE_" prefix into this method since it is added automatically. For example, if you want to determine if the current user has the authority "ROLE_ADMIN", you could use the following:
 
 [source,java]
 ----
@@ -2930,7 +2987,15 @@ If the authentication event was successful, or authentication was not attempted 
 === DigestAuthenticationFilter
 `DigestAuthenticationFilter` is capable of processing digest authentication credentials presented in HTTP headers. Digest Authentication attempts to solve many of the weaknesses of Basic authentication, specifically by ensuring credentials are never sent in clear text across the wire. Many user agents support Digest Authentication, including FireFox and Internet Explorer. The standard governing HTTP Digest Authentication is defined by RFC 2617, which updates an earlier version of the Digest Authentication standard prescribed by RFC 2069. Most user agents implement RFC 2617. Spring Security's `DigestAuthenticationFilter` is compatible with the "`auth`" quality of protection (`qop`) prescribed by RFC 2617, which also provides backward compatibility with RFC 2069. Digest Authentication is a more attractive option if you need to use unencrypted HTTP (i.e. no TLS/HTTPS) and wish to maximise security of the authentication process. Indeed Digest Authentication is a mandatory requirement for the WebDAV protocol, as noted by RFC 2518 Section 17.1.
 
-Digest Authentication is definitely the most secure choice between Form Authentication, Basic Authentication and Digest Authentication, although extra security also means more complex user agent implementations. Central to Digest Authentication is a "nonce". This is a value the server generates. Spring Security's nonce adopts the following format:
+[NOTE]
+====
+You should not use Digest in modern applications because it is not considered secure.
+The most obvious problem is that you must store your passwords in plaintext, encrpted, or an MD5 format.
+All of these storage formats are considered insecure.
+Instead, you should use a one way adaptive password hash (i.e. BCrypt, PBKDF2, SCrypt, etc).
+====
+
+Central to Digest Authentication is a "nonce". This is a value the server generates. Spring Security's nonce adopts the following format:
 
 [source,txt]
 ----
@@ -3236,7 +3301,7 @@ As of Spring Security 4.0, CSRF protection is enabled by default with XML config
 </http>
 ----
 
-CSRF protection is enabled by default with Java configuration. If you would like to disable CSRF, the corresponding Java configuration can be seen below. Refer to the Javadoc of csrf() for additional customizations in how CSRF protection is configured.
+CSRF protection is enabled by default with Java Configuration. If you would like to disable CSRF, the corresponding Java configuration can be seen below. Refer to the Javadoc of csrf() for additional customizations in how CSRF protection is configured.
 
 [source,java]
 ----
@@ -3251,6 +3316,7 @@ protected void configure(HttpSecurity http) throws Exception {
 }
 }
 ----
+
 
 [[csrf-include-csrf-token]]
 ==== Include the CSRF Token
@@ -3272,7 +3338,7 @@ The last step is to ensure that you include the CSRF token in all PATCH, POST, P
 </form>
 ----
 
-An easier approach is to use <<the-csrfInput-tag,the csrfInput tag>> from the Spring Security JSP tag library.
+An easier approach is to use <<the-csrfinput-tag,the csrfInput tag>> from the Spring Security JSP tag library.
 
 [NOTE]
 ====
@@ -3324,6 +3390,58 @@ name: $("meta[name='_csrf_header']").attr("content")
 
 The configured client can be shared with any component of the application that needs to make a request to the CSRF protected resource. One significant different between rest.js and jQuery is that only requests made with the configured client will contain the CSRF token, vs jQuery where __all__ requests will include the token. The ability to scope which requests receive the token helps guard against leaking the CSRF token to a third party. Please refer to the https://github.com/cujojs/rest/tree/master/docs[rest.js reference documentation] for more information on rest.js.
 
+[[csrf-cookie]]
+===== CookieCsrfTokenRepository
+
+There can be cases where users will want to persist the `CsrfToken` in a cookie.
+By default the `CookieCsrfTokenRepository` will write to a cookie named `XSRF-TOKEN` and read it from a header named `X-XSRF-TOKEN` or the HTTP parameter `_csrf`.
+These defaults come from https://docs.angularjs.org/api/ng/service/$http#cross-site-request-forgery-xsrf-protection[AngularJS]
+
+You can configure `CookieCsrfTokenRepository` in XML using the following:
+
+[source,xml]
+----
+<http>
+	<!-- ... -->
+	<csrf token-repository-ref="tokenRepository"/>
+</http>
+<b:bean id="tokenRepository"
+	class="org.springframework.security.web.csrf.CookieCsrfTokenRepository"
+	p:cookieHttpOnly="false"/>
+----
+
+[NOTE]
+====
+The sample explicitly sets `cookieHttpOnly=false`.
+This is necessary to allow JavaScript (i.e. AngularJS) to read it.
+If you do not need the ability to read the cookie with JavaScript directly, it is recommended to omit `cookieHttpOnly=false` to improve security.
+====
+
+
+You can configure `CookieCsrfTokenRepository` in Java Configuration using:
+
+[source,java]
+----
+@EnableWebSecurity
+public class WebSecurityConfig extends
+		WebSecurityConfigurerAdapter {
+
+	@Override
+	protected void configure(HttpSecurity http) throws Exception {
+		http
+			.csrf()
+				.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse());
+	}
+}
+----
+
+[NOTE]
+====
+The sample explicitly sets `cookieHttpOnly=false`.
+This is necessary to allow JavaScript (i.e. AngularJS) to read it.
+If you do not need the ability to read the cookie with JavaScript directly, it is recommended to omit `cookieHttpOnly=false` (by using `new CookieCsrfTokenRepository()` instead) to improve security.
+====
+
 
 [[csrf-caveats]]
 === CSRF Caveats
@@ -3336,17 +3454,22 @@ One issue is that the expected CSRF token is stored in the HttpSession, so as so
 
 [NOTE]
 ====
-One might ask why the expected `CsrfToken` isn't stored in a cookie. This is because there are known exploits in which headers (i.e. specify the cookies) can be set by another domain. This is the same reason Ruby on Rails http://weblog.rubyonrails.org/2011/2/8/csrf-protection-bypass-in-ruby-on-rails/[no longer skips CSRF checks when the header X-Requested-With is present]. See http://lists.webappsec.org/pipermail/websecurity_lists.webappsec.org/2011-February/007533.html[this webappsec.org thread] for details on how to perform the exploit. Another disadvantage is that by removing the state (i.e. the timeout) you lose the ability to forcibly terminate the token if it is compromised.
+One might ask why the expected `CsrfToken` isn't stored in a cookie by default. This is because there are known exploits in which headers (i.e. specify the cookies) can be set by another domain. This is the same reason Ruby on Rails http://weblog.rubyonrails.org/2011/2/8/csrf-protection-bypass-in-ruby-on-rails/[no longer skips CSRF checks when the header X-Requested-With is present]. See http://lists.webappsec.org/pipermail/websecurity_lists.webappsec.org/2011-February/007533.html[this webappsec.org thread] for details on how to perform the exploit. Another disadvantage is that by removing the state (i.e. the timeout) you lose the ability to forcibly terminate the token if it is compromised.
 ====
 
 A simple way to mitigate an active user experiencing a timeout is to have some JavaScript that lets the user know their session is about to expire. The user can click a button to continue and refresh the session.
 
 Alternatively, specifying a custom `AccessDeniedHandler` allows you to process the `InvalidCsrfTokenException` any way you like. For an example of how to customize the `AccessDeniedHandler` refer to the provided links for both <<nsa-access-denied-handler,xml>> and https://github.com/spring-projects/spring-security/blob/3.2.0.RC1/config/src/test/groovy/org/springframework/security/config/annotation/web/configurers/NamespaceHttpAccessDeniedHandlerTests.groovy#L64[Java configuration].
 
+Finally, the application can be configured to use <<csrf-cookie,CookieCsrfTokenRepository>> which will not expire.
+As previously mentioned, this is not as secure as using a session, but in many cases can be good enough.
+
 
 [[csrf-login]]
 ==== Logging In
 In order to protect against http://en.wikipedia.org/wiki/Cross-site_request_forgery#Forging_login_requests[forging log in requests] the log in form should be protected against CSRF attacks too. Since the `CsrfToken` is stored in HttpSession, this means an HttpSession will be created as soon as `CsrfToken` token attribute is accessed. While this sounds bad in a RESTful / stateless architecture the reality is that state is necessary to implement practical security. Without state, we have nothing we can do if a token is compromised. Practically speaking, the CSRF token is quite small in size and should have a negligible impact on our architecture.
+
+A common technique to protect the log in form is by using a javascript function to obtain a valid CSRF token before the form submission. By doing this, there is no need to think about session timeouts (discussed in the previous section) because the session is created right before the form submission (assuming that <<csrf-cookie,CookieCsrfTokenRepository>> isn't configured instead), so the user can stay on the login page and submit the username/password when he wants. In order to achieve this, you can take advantage of the `CsrfTokenArgumentResolver` provided by Spring Security and expose an endpoint like it's described on <<mvc-csrf-resolver,here>>.
 
 
 [[csrf-logout]]
@@ -3445,6 +3568,83 @@ Spring Security's goal is to provide defaults that protect your users from explo
 For example, you can provide a custom CsrfTokenRepository to override the way in which the `CsrfToken` is stored.
 
 You can also specify a custom RequestMatcher to determine which requests are protected by CSRF (i.e. perhaps you don't care if log out is exploited). In short, if Spring Security's CSRF protection doesn't behave exactly as you want it, you are able to customize the behavior. Refer to the <<nsa-csrf>> documentation for details on how to make these customizations with XML and the `CsrfConfigurer` javadoc for details on how to make these customizations when using Java configuration.
+
+[[cors]]
+== CORS
+
+Spring Framework provides http://docs.spring.io/spring/docs/current/spring-framework-reference/htmlsingle/#cors[first class support for CORS].
+CORS must be processed before Spring Security because the preflight request will not contain any cookies (i.e. the `JSESSIONID`).
+If the request does not contain any cookies and Spring Security is first, the request will determine the user is not authenticated (since there are no cookies in the request) and reject it.
+
+The easiest way to ensure that CORS is handled first is to use the `CorsFilter`.
+Users can integrate the `CorsFilter` with Spring Security by providing a `CorsConfigurationSource` using the following:
+
+[source,java]
+----
+@EnableWebSecurity
+public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+
+	@Override
+	protected void configure(HttpSecurity http) throws Exception {
+		http
+			// by default uses a Bean by the name of corsConfigurationSource
+			.cors().and()
+			...
+	}
+
+	@Bean
+	CorsConfigurationSource corsConfigurationSource() {
+		CorsConfiguration configuration = new CorsConfiguration();
+		configuration.setAllowedOrigins(Arrays.asList("https://example.com"));
+		configuration.setAllowedMethods(Arrays.asList("GET","POST"));
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		source.registerCorsConfiguration("/**", configuration);
+		return source;
+	}
+}
+----
+
+or in XML
+
+[source,xml]
+----
+<http>
+	<cors configuration-source-ref="corsSource"/>
+	...
+</http>
+<b:bean id="corsSource" class="org.springframework.web.cors.UrlBasedCorsConfigurationSource">
+	...
+</b:bean>
+----
+
+If you are using Spring MVC's CORS support, you can omit specifying the `CorsConfigurationSource` and Spring Security will leverage the CORS configuration provided to Spring MVC.
+
+[source,java]
+----
+@EnableWebSecurity
+public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+
+	@Override
+	protected void configure(HttpSecurity http) throws Exception {
+		http
+			// if Spring MVC is on classpath and no CorsConfigurationSource is provided,
+			// Spring Security will use CORS configuration provided to Spring MVC
+			.cors().and()
+			...
+	}
+}
+----
+
+or in XML
+
+[source,xml]
+----
+<http>
+	<!-- Default to Spring MVC's CORS configuraiton -->
+	<cors />
+	...
+</http>
+----
 
 [[headers]]
 == Security HTTP Response Headers
@@ -3966,7 +4166,7 @@ Additionally, if the https://www.w3.org/TR/CSP2/#directive-report-uri[*_report-u
 then the violation will be reported by the user-agent to the declared URL.
 
 For example, if a web application violates the declared security policy,
-the following response header will instruct the user-agent to send violation reports to the URL specified in the policy’s _report-uri_ directive.
+the following response header will instruct the user-agent to send violation reports to the URL specified in the policy's _report-uri_ directive.
 
 [source]
 ----
@@ -4822,7 +5022,7 @@ or in Java configuration
 [source,java]
 ----
 http
-		.authorizeUrls()
+		.authorizeRequests()
 				.antMatchers("/user/**").access("@webSecurity.check(authentication,request)")
 				...
 ----
@@ -4861,7 +5061,7 @@ or in Java configuration
 [source,java]
 ----
 http
-		.authorizeUrls()
+		.authorizeRequests()
 				.antMatchers("/user/{userId}/**").access("@webSecurity.checkUserId(authentication,#userId)")
 				...
 ----
@@ -5252,7 +5452,7 @@ We've assumed here that the <<ns-config,security namespace>> is being used for c
 ==== Java EE Container Authentication
 The class `J2eePreAuthenticatedProcessingFilter` will extract the username from the `userPrincipal` property of the `HttpServletRequest`. Use of this filter would usually be combined with the use of Java EE roles as described above in <<j2ee-preauth-details>>.
 
-There is a sample application in the codebase which uses this approach, so get hold of the code from github and have a look at the application context file if you are interested. The code is in the `samples/preauth-xml` directory.
+There is a sample application in the codebase which uses this approach, so get hold of the code from github and have a look at the application context file if you are interested. The code is in the `samples/xml/preauth` directory.
 
 
 [[ldap]]
@@ -5586,7 +5786,7 @@ If CSRF protection is enabled, this tag inserts a hidden form field with the cor
 
 Normally Spring Security automatically inserts a CSRF form field for any `<form:form>` tags you use, but if for some reason you cannot use `<form:form>`, `csrfInput` is a handy replacement.
 
-You should place this tag within an HTML `<form></form>` block, where you would normally place other input fields. Do NOT place this tag within a Spring `<form:form></form:form>` block—Spring Security handles Spring forms automatically.
+You should place this tag within an HTML `<form></form>` block, where you would normally place other input fields. Do NOT place this tag within a Spring `<form:form></form:form>` block. Spring Security handles Spring forms automatically.
 
 [source,xml]
 ----
@@ -6038,7 +6238,7 @@ The next step is to update the `CasAuthenticationProvider` to be able to obtain 
 </bean>
 ----
 
-The last step is to update the `CasAuthenticationFilter` to accept PGT and to store them in the `ProxyGrantingTicketStorage`. It is important the the `proxyReceptorUrl` matches the `proxyCallbackUrl` of the `Cas20ProxyTicketValidator`. An example configuration is shown below.
+The last step is to update the `CasAuthenticationFilter` to accept PGT and to store them in the `ProxyGrantingTicketStorage`. It is important the `proxyReceptorUrl` matches the `proxyCallbackUrl` of the `Cas20ProxyTicketValidator`. An example configuration is shown below.
 
 [source,xml]
 ----
@@ -6361,6 +6561,19 @@ String result = encoder.encode("myPassword");
 assertTrue(encoder.matches("myPassword", result));
 ----
 
+The `Pbkdf2PasswordEncoder` implementation uses PBKDF2 algorithm to hash the passwords.
+In order to defeat password cracking PBKDF2 is a deliberately slow algorithm and should be tuned to take about .5 seconds to verify a password on your system.
+
+
+[source,java]
+----
+
+// Create an encoder with all the defaults
+Pbkdf2PasswordEncoder encoder = new Pbkdf2PasswordEncoder();
+String result = encoder.encode("myPassword");
+assertTrue(encoder.matches("myPassword", result));
+----
+
 [[concurrency]]
 == Concurrency Support
 
@@ -6514,11 +6727,91 @@ To enable Spring Security integration with Spring MVC add the `@EnableWebSecurit
 
 NOTE: Spring Security provides the configuration using Spring MVC's http://docs.spring.io/spring-framework/docs/4.1.x/spring-framework-reference/htmlsingle/#mvc-config-customize[WebMvcConfigurerAdapter]. This means that if you are using more advanced options, like integrating with `WebMvcConfigurationSupport` directly, then you will need to manually provide the Spring Security configuration.
 
+[[mvc-requestmatcher]]
+=== MvcRequestMatcher
+
+Spring Security provides deep integration with how Spring MVC matches on URLs with `MvcRequestMatcher`.
+This is helpful to ensure your Security rules match the logic used to handle your requests.
+
+[NOTE]
+====
+It is always recommended to provide authorization rules by matching on the `HttpServletRequest` and method security.
+
+Providing authorization rules by matching on `HttpServletRequest` is good because it happens very early in the code path and helps reduce the https://en.wikipedia.org/wiki/Attack_surface[attack surface].
+Method security ensures that if someone has bypassed the web authorization rules, that your application is still secured.
+This is what is known as https://en.wikipedia.org/wiki/Defense_in_depth_(computing)[Defence in Depth]
+====
+
+Consider a controller that is mapped as follows:
+
+[source,java]
+----
+@RequestMapping("/admin")
+public String admin() {
+----
+
+If we wanted to restrict access to this controller method to admin users, a developer can provide authorization rules by matching on the `HttpServletRequest` with the following:
+
+[source,java]
+----
+protected configure(HttpSecurity http) throws Exception {
+	http
+		.authorizeRequests()
+			.antMatchers("/admin").hasRole("ADMIN");
+}
+----
+
+or in XML
+
+[source,xml]
+----
+<http>
+	<intercept-url pattern="/admin" access="hasRole('ADMIN')"/>
+</http>
+----
+
+With either configuration, the URL `/admin` will require the authenticated user to be an admin user.
+However, depending on our Spring MVC configuration, the URL `/admin.html` will also map to our `admin()` method.
+Additionally, depending on our Spring MVC configuration, the URL `/admin/` will also map to our `admin()` method.
+
+The problem is that our security rule is only protecting `/admin`.
+We could add additional rules for all the permutations of Spring MVC, but this would be quite verbose and tedious.
+
+Instead, we can leverage Spring Security's `MvcRequestMatcher`.
+The following configuration will protect the same URLs that Spring MVC will match on by using Spring MVC to match on the URL.
+
+
+[source,java]
+----
+protected configure(HttpSecurity http) throws Exception {
+	http
+		.authorizeRequests()
+			.mvcMatchers("/admin").hasRole("ADMIN");
+}
+----
+
+or in XML
+
+[source,xml]
+----
+<http request-matcher="mvc">
+	<intercept-url pattern="/admin" access="hasRole('ADMIN')"/>
+</http>
+----
 
 [[mvc-authentication-principal]]
 === @AuthenticationPrincipal
 
-Spring Security provides `AuthenticationPrincipalArgumentResolver` which can automatically resolve the current `Authentication.getPrincipal()` for Spring MVC arguments. By using <<mvc-enablewebmvcsecurity>> you will automatically have this added to your Spring MVC configuration. If you use XML based configuraiton, you must add this yourself.
+Spring Security provides `AuthenticationPrincipalArgumentResolver` which can automatically resolve the current `Authentication.getPrincipal()` for Spring MVC arguments. By using `@EnableWebSecurity` you will automatically have this added to your Spring MVC configuration. If you use XML based configuration, you must add this yourself. For example:
+
+[source,xml]
+----
+<mvc:annotation-driven>
+		<mvc:argument-resolvers>
+				<bean class="org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver" />
+		</mvc:argument-resolvers>
+</mvc:annotation-driven>
+----
 
 Once `AuthenticationPrincipalArgumentResolver` is properly configured, you can be entirely decoupled from Spring Security in your Spring MVC layer.
 
@@ -6526,10 +6819,6 @@ Consider a situation where a custom `UserDetailsService` that returns an `Object
 
 [source,java]
 ----
-import org.springframework.security.web.bind.annotation.AuthenticationPrincipal;
-
-// ...
-
 @RequestMapping("/messages/inbox")
 public ModelAndView findMessagesForUser() {
 	Authentication authentication =
@@ -6544,8 +6833,42 @@ As of Spring Security 3.2 we can resolve the argument more directly by adding an
 
 [source,java]
 ----
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+
+// ...
+
 @RequestMapping("/messages/inbox")
 public ModelAndView findMessagesForUser(@AuthenticationPrincipal CustomUser customUser) {
+
+	// .. find messags for this user and return them ...
+}
+----
+
+Sometimes it may be necessary to transform the principal in some way.
+For example, if `CustomUser` needed to be final it could not be extended.
+In this situation the `UserDetailsService` might returns an `Object` that implements `UserDetails` and provides a method named `getCustomUser` to access `CustomUser`.
+For example, it might look like:
+
+[source,java]
+----
+public class CustomUserUserDetails extends User {
+		// ...
+		public CustomUser getCustomUser() {
+				return customUser;
+		}
+}
+----
+
+We could then access the `CustomUser` using a https://docs.spring.io/spring/docs/current/spring-framework-reference/html/expressions.html[SpEL expression] that uses `Authentication.getPrincipal()` as the root object:
+
+[source,java]
+----
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+
+// ...
+
+@RequestMapping("/messages/inbox")
+public ModelAndView findMessagesForUser(@AuthenticationPrincipal(expression = "customUser") CustomUser customUser) {
 
 	// .. find messags for this user and return them ...
 }
@@ -6653,11 +6976,11 @@ Will output HTML that is similar to the following:
 [[mvc-csrf-resolver]]
 ==== Resolving the CsrfToken
 
-Spring Security provides `CsrfTokenResolver` which can automatically resolve the current `CsrfToken` for Spring MVC arguments.
+Spring Security provides `CsrfTokenArgumentResolver` which can automatically resolve the current `CsrfToken` for Spring MVC arguments.
 By using <<jc-hello-wsca,@EnableWebSecurity>> you will automatically have this added to your Spring MVC configuration.
 If you use XML based configuraiton, you must add this yourself.
 
-Once `CsrfTokenResolver` is properly configured, you can expose the `CsrfToken` to your static HTML based application.
+Once `CsrfTokenArgumentResolver` is properly configured, you can expose the `CsrfToken` to your static HTML based application.
 
 [source,java]
 ----
@@ -7152,12 +7475,12 @@ Sets the realm name used for basic authentication (if enabled). Corresponds to t
 
 [[nsa-http-request-matcher]]
 * **request-matcher**
-Defines the `RequestMatcher` strategy used in the `FilterChainProxy` and the beans created by the `intercept-url` to match incoming requests. Options are currently `ant`, `regex` and `ciRegex`, for ant, regular-expression and case-insensitive regular-expression repsectively. A separate instance is created for each<<nsa-intercept-url,intercept-url>> element using its <<nsa-intercept-url-pattern,pattern>> and <<nsa-intercept-url-method,method>> attributes. Ant paths are matched using an `AntPathRequestMatcher` and regular expressions are matched using a `RegexRequestMatcher`. See the Javadoc for these classes for more details on exactly how the matching is preformed. Ant paths are the default strategy.
+Defines the `RequestMatcher` strategy used in the `FilterChainProxy` and the beans created by the `intercept-url` to match incoming requests. Options are currently `mvc`, `ant`, `regex` and `ciRegex`, for Spring MVC, ant, regular-expression and case-insensitive regular-expression respectively. A separate instance is created for each <<nsa-intercept-url,intercept-url>> element using its <<nsa-intercept-url-pattern,pattern>>, <<nsa-intercept-url-method,method>> and <<nsa-intercept-url-servlet-path,servlet-path>> attributes. Ant paths are matched using an `AntPathRequestMatcher`, regular expressions are matched using a `RegexRequestMatcher` and for Spring MVC path matching the `MvcRequestMatcher` is used. See the Javadoc for these classes for more details on exactly how the matching is performed. Ant paths are the default strategy.
 
 
 [[nsa-http-request-matcher-ref]]
 * **request-matcher-ref**
-A referenece to a bean that implements `RequestMatcher` that will determine if this `FilterChain` should be used. This is a more powerful alternative to <<nsa-http-pattern,pattern>>.
+A reference to a bean that implements `RequestMatcher` that will determine if this `FilterChain` should be used. This is a more powerful alternative to <<nsa-http-pattern,pattern>>.
 
 
 [[nsa-http-security]]
@@ -7184,6 +7507,7 @@ Enables EL-expressions in the `access` attribute, as described in the chapter on
 ===== Child Elements of <http>
 * <<nsa-access-denied-handler,access-denied-handler>>
 * <<nsa-anonymous,anonymous>>
+* <<nsa-cors,cors>>
 * <<nsa-csrf,csrf>>
 * <<nsa-custom-filter,custom-filter>>
 * <<nsa-expression-handler,expression-handler>>
@@ -7224,6 +7548,28 @@ The access denied page that an authenticated user will be redirected to if they 
 * **ref**
 Defines a reference to a Spring bean of type `AccessDeniedHandler`.
 
+
+[[nsa-cors]]
+==== <cors>
+This element allows for configuring a `CorsFilter`.
+If no `CorsFilter` or `CorsConfigurationSource` is specified and Spring MVC is on the classpath, a `HandlerMappingIntrospector` is used as the `CorsConfigurationSource`.
+
+[[nsa-cors-attributes]]
+===== <cors> Attributes
+The attributes on the `<cors>` element control the headers element.
+
+[[nsa-cors-ref]]
+* **ref**
+Optional attribute that specifies the bean name of a `CorsFilter`.
+
+[[nsa-cors-configuration-source-ref]]
+* **ref**
+Optional attribute that specifies the bean name of a `CorsConfigurationSource` to be injected into a `CorsFilter` created by the XML namespace.
+
+[[nsa-cors-parents]]
+===== Parent Elements of <cors>
+
+* <<nsa-http,http>>
 
 [[nsa-headers]]
 ==== <headers>
@@ -7434,7 +7780,7 @@ If disabled, the X-Frame-Options header will not be included. Default false.
 * **policy**
 ** `DENY` The page cannot be displayed in a frame, regardless of the site attempting to do so. This is the default when frame-options-policy is specified.
 ** `SAMEORIGIN` The page can only be displayed in a frame on the same origin as the page itself
-** `ALLOW-FROM` <<nsa-frame-options-origin,origin>> The page can only be displayed in a frame on the specified origin.
+** `ALLOW-FROM origin` The page can only be displayed in a frame on the specified origin.
 
 +
 
@@ -7804,7 +8150,7 @@ Defines a reference to a Spring bean that implements `HttpFirewall`.
 
 [[nsa-intercept-url]]
 ==== <intercept-url>
-This element is used to define the set of URL patterns that the application is interested in and to configure how they should be handled. It is used to construct the `FilterInvocationSecurityMetadataSource` used by the `FilterSecurityInterceptor`. It is also responsible for configuring a `ChannelProcessingFilter` if particular URLs need to be accessed by HTTPS, for example. When matching the specified patterns against an incoming request, the matching is done in the order in which the elements are declared. So the most specific matches patterns should come first and the most general should come last.
+This element is used to define the set of URL patterns that the application is interested in and to configure how they should be handled. It is used to construct the `FilterInvocationSecurityMetadataSource` used by the `FilterSecurityInterceptor`. It is also responsible for configuring a `ChannelProcessingFilter` if particular URLs need to be accessed by HTTPS, for example. When matching the specified patterns against an incoming request, the matching is done in the order in which the elements are declared. So the most specific patterns should come first and the most general should come last.
 
 
 [[nsa-intercept-url-parents]]
@@ -7833,7 +8179,7 @@ NOTE: This property is invalid for <<nsa-filter-security-metadata-source,filter-
 
 [[nsa-intercept-url-method]]
 * **method**
-The HTTP Method which will be used in combination with the pattern to match an incoming request. If omitted, any method will match. If an identical pattern is specified with and without a method, the method-specific match will take precedence.
+The HTTP Method which will be used in combination with the pattern and servlet path (optional) to match an incoming request. If omitted, any method will match. If an identical pattern is specified with and without a method, the method-specific match will take precedence.
 
 
 [[nsa-intercept-url-pattern]]
@@ -7846,6 +8192,12 @@ The pattern which defines the URL path. The content will depend on the `request-
 Can be "http" or "https" depending on whether a particular URL pattern should be accessed over HTTP or HTTPS respectively. Alternatively the value "any" can be used when there is no preference. If this attribute is present on any `<intercept-url>` element, then a `ChannelProcessingFilter` will be added to the filter stack and its additional dependencies added to the application context.
 
 If a `<port-mappings>` configuration is added, this will be used to by the `SecureChannelProcessor` and `InsecureChannelProcessor` beans to determine the ports used for redirecting to HTTP/HTTPS.
+
+NOTE: This property is invalid for <<nsa-filter-security-metadata-source,filter-security-metadata-source>>
+
+[[nsa-intercept-url-servlet-path]]
+* **servlet-path**
+The servlet path which will be used in combination with the pattern and HTTP method to match an incoming request. This attribute is only applicable when <<nsa-http-request-matcher,request-matcher>> is 'mvc'. In addition, the value is only required in the following 2 use cases: 1) There are 2 or more `HttpServlet` 's registered in the `ServletContext` that have mappings starting with `'/'` and are different;  2) The pattern starts with the same value of a registered `HttpServlet` path, excluding the default (root) `HttpServlet` `'/'`.
 
 NOTE: This property is invalid for <<nsa-filter-security-metadata-source,filter-security-metadata-source>>
 
@@ -8240,6 +8592,9 @@ Session-management related functionality is implemented by the addition of a `Se
 * **invalid-session-url**
 Setting this attribute will inject the `SessionManagementFilter` with a `SimpleRedirectInvalidSessionStrategy` configured with the attribute value. When an invalid session ID is submitted, the strategy will be invoked, redirecting to the configured URL.
 
+[[nsa-session-management-invalid-session-strategy-ref]]
+* **invalid-session-url**
+Allows injection of the InvalidSessionStrategy instance used by the SessionManagementFilter. Use either this or the `invalid-session-url` attribute but not both.
 
 [[nsa-session-management-session-authentication-error-url]]
 * **session-authentication-error-url**
@@ -8294,6 +8649,9 @@ If set to "true" a `SessionAuthenticationException` will be raised when a user a
 * **expired-url**
 The URL a user will be redirected to if they attempt to use a session which has been "expired" by the concurrent session controller because the user has exceeded the number of allowed sessions and has logged in again elsewhere. Should be set unless `exception-if-maximum-exceeded` is set. If no value is supplied, an expiry message will just be written directly back to the response.
 
+[[nsa-concurrency-control-expired-session-strategy-ref]]
+* **expired-url**
+Allows injection of the ExpiredSessionStrategy instance used by the ConcurrentSessionFilter
 
 [[nsa-concurrency-control-max-sessions]]
 * **max-sessions**
@@ -8353,7 +8711,7 @@ Used to explicitly configure a FilterChainProxy instance with a FilterChainMap
 
 [[nsa-filter-chain-map-request-matcher]]
 * **request-matcher**
-Defines the strategy use for matching incoming requests. Currently the options are 'ant' (for ant path patterns), 'regex' for regular expressions and 'ciRegex' for case-insensitive regular expressions.
+Defines the strategy to use for matching incoming requests. Currently the options are 'ant' (for ant path patterns), 'regex' for regular expressions and 'ciRegex' for case-insensitive regular expressions.
 
 
 [[nsa-filter-chain-map-children]]
@@ -8388,7 +8746,7 @@ A comma separated list of references to Spring beans that implement `Filter`. Th
 
 [[nsa-filter-chain-pattern]]
 * **pattern**
-A-pattern that creates RequestMatcher in combination with the <<nsa-filter-chain-map-request-matcher,request-matcher>>
+A pattern that creates RequestMatcher in combination with the <<nsa-filter-chain-map-request-matcher,request-matcher>>
 
 
 [[nsa-filter-chain-request-matcher-ref]]
@@ -8514,12 +8872,12 @@ This attribute allows you to define an alias name for the internal instance for 
 
 [[nsa-authentication-manager-erase-credentials]]
 * **erase-credentials**
-If set to true, the AuthenticationManger will attempt to clear any credentials data in the returned Authentication object, once the user has been authenticated. Literally it maps to the `eraseCredentialsAfterAuthentication` property of the `ProviderManager`. This is discussed in the <<core-services-erasing-credentials,Core Services>> chapter.
+If set to true, the AuthenticationManager will attempt to clear any credentials data in the returned Authentication object, once the user has been authenticated. Literally it maps to the `eraseCredentialsAfterAuthentication` property of the `ProviderManager`. This is discussed in the <<core-services-erasing-credentials,Core Services>> chapter.
 
 
 [[nsa-authentication-manager-id]]
 * **id**
-This attribute allows you to define an id for the internal instance for use in your own configuration. It is the same a the alias element, but provides a more consistent experience with elements that use the id attribute.
+This attribute allows you to define an id for the internal instance for use in your own configuration. It is the same as the alias element, but provides a more consistent experience with elements that use the id attribute.
 
 
 [[nsa-authentication-manager-children]]

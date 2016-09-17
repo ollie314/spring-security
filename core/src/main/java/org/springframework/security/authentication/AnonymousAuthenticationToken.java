@@ -18,9 +18,9 @@ package org.springframework.security.authentication;
 
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.List;
 
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.util.Assert;
 
 /**
  * Represents an anonymous <code>Authentication</code>.
@@ -42,30 +42,45 @@ public class AnonymousAuthenticationToken extends AbstractAuthenticationToken im
 	/**
 	 * Constructor.
 	 *
-	 * @param key to identify if this object made by an authorised client
-	 * @param principal the principal (typically a <code>UserDetails</code>)
+	 * @param key         to identify if this object made by an authorised client
+	 * @param principal   the principal (typically a <code>UserDetails</code>)
 	 * @param authorities the authorities granted to the principal
-	 *
 	 * @throws IllegalArgumentException if a <code>null</code> was passed
 	 */
 	public AnonymousAuthenticationToken(String key, Object principal,
-			Collection<? extends GrantedAuthority> authorities) {
+										Collection<? extends GrantedAuthority> authorities) {
+		this(extractKeyHash(key), principal, authorities);
+	}
+
+	/**
+	 * Constructor helps in Jackson Deserialization
+	 *
+	 * @param keyHash     hashCode of provided Key, constructed by above constructor
+	 * @param principal   the principal (typically a <code>UserDetails</code>)
+	 * @param authorities the authorities granted to the principal
+	 * @since 4.2
+	 */
+	private AnonymousAuthenticationToken(Integer keyHash, Object principal,
+										Collection<? extends GrantedAuthority> authorities) {
 		super(authorities);
 
-		if ((key == null) || ("".equals(key)) || (principal == null)
-				|| "".equals(principal) || (authorities == null)
-				|| (authorities.isEmpty())) {
-			throw new IllegalArgumentException(
-					"Cannot pass null or empty values to constructor");
+		if (principal == null || "".equals(principal)) {
+			throw new IllegalArgumentException("principal cannot be null or empty");
 		}
+		Assert.notEmpty(authorities, "authorities cannot be null or empty");
 
-		this.keyHash = key.hashCode();
+		this.keyHash = keyHash;
 		this.principal = principal;
 		setAuthenticated(true);
 	}
 
 	// ~ Methods
 	// ========================================================================================================
+
+	private static Integer extractKeyHash(String key) {
+		Assert.hasLength(key, "key cannot be empty or null");
+		return key.hashCode();
+	}
 
 	public boolean equals(Object obj) {
 		if (!super.equals(obj)) {

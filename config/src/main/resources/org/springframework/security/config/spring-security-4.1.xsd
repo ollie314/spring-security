@@ -34,13 +34,14 @@
   <xs:attributeGroup name="request-matcher">
       <xs:attribute name="request-matcher" use="required">
          <xs:annotation>
-            <xs:documentation>Defines the strategy use for matching incoming requests. Currently the options are 'ant'
-                (for ant path patterns), 'regex' for regular expressions and 'ciRegex' for
-                case-insensitive regular expressions.
+            <xs:documentation>Defines the strategy use for matching incoming requests. Currently the options are 'mvc'
+                (for Spring MVC matcher), 'ant' (for ant path patterns), 'regex' for regular expressions
+                and 'ciRegex' for case-insensitive regular expressions.
                 </xs:documentation>
          </xs:annotation>
          <xs:simpleType>
             <xs:restriction base="xs:token">
+               <xs:enumeration value="mvc"/>
                <xs:enumeration value="ant"/>
                <xs:enumeration value="regex"/>
                <xs:enumeration value="ciRegex"/>
@@ -1111,6 +1112,7 @@
             </xs:element>
             <xs:element ref="security:headers"/>
             <xs:element ref="security:csrf"/>
+            <xs:element ref="security:cors"/>
          </xs:choice>
          <xs:attributeGroup ref="security:http.attlist"/>
       </xs:complexType>
@@ -1164,7 +1166,7 @@
             <xs:documentation>Controls the eagerness with which an HTTP session is created by Spring Security classes.
                 If not set, defaults to "ifRequired". If "stateless" is used, this implies that the
                 application guarantees that it will not create a session. This differs from the use of
-                "never" which mans that Spring Security will not create a session, but will make use of
+                "never" which means that Spring Security will not create a session, but will make use of
                 one if the application does.
                 </xs:documentation>
          </xs:annotation>
@@ -1186,13 +1188,14 @@
       </xs:attribute>
       <xs:attribute name="request-matcher">
          <xs:annotation>
-            <xs:documentation>Defines the strategy use for matching incoming requests. Currently the options are 'ant'
-                (for ant path patterns), 'regex' for regular expressions and 'ciRegex' for
-                case-insensitive regular expressions.
+            <xs:documentation>Defines the strategy use for matching incoming requests. Currently the options are 'mvc'
+                (for Spring MVC matcher), 'ant' (for ant path patterns), 'regex' for regular expressions
+                and 'ciRegex' for case-insensitive regular expressions.
                 </xs:documentation>
          </xs:annotation>
          <xs:simpleType>
             <xs:restriction base="xs:token">
+               <xs:enumeration value="mvc"/>
                <xs:enumeration value="ant"/>
                <xs:enumeration value="regex"/>
                <xs:enumeration value="ciRegex"/>
@@ -1339,6 +1342,16 @@
          <xs:annotation>
             <xs:documentation>Used to specify that a URL must be accessed over http or https, or that there is no
                 preference. The value should be "http", "https" or "any", respectively.
+                </xs:documentation>
+         </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="servlet-path" type="xs:token">
+         <xs:annotation>
+            <xs:documentation>The path to the servlet. This attribute is only applicable when 'request-matcher' is
+                'mvc'. In addition, the value is only required in the following 2 use cases: 1) There are
+                2 or more HttpServlet's registered in the ServletContext that have mappings starting with
+                '/' and are different; 2) The pattern starts with the same value of a registered
+                HttpServlet path, excluding the default (root) HttpServlet '/'.
                 </xs:documentation>
          </xs:annotation>
       </xs:attribute>
@@ -1556,13 +1569,14 @@
   <xs:attributeGroup name="filter-chain-map.attlist">
       <xs:attribute name="request-matcher">
          <xs:annotation>
-            <xs:documentation>Defines the strategy use for matching incoming requests. Currently the options are 'ant'
-                (for ant path patterns), 'regex' for regular expressions and 'ciRegex' for
-                case-insensitive regular expressions.
+            <xs:documentation>Defines the strategy use for matching incoming requests. Currently the options are 'mvc'
+                (for Spring MVC matcher), 'ant' (for ant path patterns), 'regex' for regular expressions
+                and 'ciRegex' for case-insensitive regular expressions.
                 </xs:documentation>
          </xs:annotation>
          <xs:simpleType>
             <xs:restriction base="xs:token">
+               <xs:enumeration value="mvc"/>
                <xs:enumeration value="ant"/>
                <xs:enumeration value="regex"/>
                <xs:enumeration value="ciRegex"/>
@@ -1667,13 +1681,14 @@
       </xs:attribute>
       <xs:attribute name="request-matcher">
          <xs:annotation>
-            <xs:documentation>Defines the strategy use for matching incoming requests. Currently the options are 'ant'
-                (for ant path patterns), 'regex' for regular expressions and 'ciRegex' for
-                case-insensitive regular expressions.
+            <xs:documentation>Defines the strategy use for matching incoming requests. Currently the options are 'mvc'
+                (for Spring MVC matcher), 'ant' (for ant path patterns), 'regex' for regular expressions
+                and 'ciRegex' for case-insensitive regular expressions.
                 </xs:documentation>
          </xs:annotation>
          <xs:simpleType>
             <xs:restriction base="xs:token">
+               <xs:enumeration value="mvc"/>
                <xs:enumeration value="ant"/>
                <xs:enumeration value="regex"/>
                <xs:enumeration value="ciRegex"/>
@@ -2385,6 +2400,31 @@
          </xs:annotation>
       </xs:attribute>
   </xs:attributeGroup>
+  <xs:element name="cors">
+      <xs:annotation>
+         <xs:documentation>Element for configuration of CorsFilter. If no CorsFilter or CorsConfigurationSource is
+                specified a HandlerMappingIntrospector is used as the CorsConfigurationSource
+                </xs:documentation>
+      </xs:annotation>
+      <xs:complexType>
+         <xs:attributeGroup ref="security:cors-options.attlist"/>
+      </xs:complexType>
+   </xs:element>
+  <xs:attributeGroup name="cors-options.attlist">
+      <xs:attribute name="ref" type="xs:token">
+         <xs:annotation>
+            <xs:documentation>Defines a reference to a Spring bean Id.
+                </xs:documentation>
+         </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="configuration-source-ref" type="xs:token">
+         <xs:annotation>
+            <xs:documentation>Specifies a bean id that is a CorsConfigurationSource used to construct the CorsFilter to
+                use
+                </xs:documentation>
+         </xs:annotation>
+      </xs:attribute>
+  </xs:attributeGroup>
   <xs:element name="hpkp">
       <xs:annotation>
          <xs:documentation>Adds support for HTTP Public Key Pinning (HPKP).
@@ -2555,7 +2595,7 @@
       </xs:attribute>
       <xs:attribute name="value" type="xs:string">
          <xs:annotation>
-            <xs:documentation>Specify the a value to use for the chosen strategy.
+            <xs:documentation>Specify a value to use for the chosen strategy.
                 </xs:documentation>
          </xs:annotation>
       </xs:attribute>
@@ -2716,6 +2756,7 @@
          <xs:enumeration value="CONCURRENT_SESSION_FILTER"/>
          <xs:enumeration value="WEB_ASYNC_MANAGER_FILTER"/>
          <xs:enumeration value="HEADERS_FILTER"/>
+         <xs:enumeration value="CORS_FILTER"/>
          <xs:enumeration value="CSRF_FILTER"/>
          <xs:enumeration value="LOGOUT_FILTER"/>
          <xs:enumeration value="X509_FILTER"/>

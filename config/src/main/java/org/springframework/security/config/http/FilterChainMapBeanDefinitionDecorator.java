@@ -15,10 +15,7 @@
  */
 package org.springframework.security.config.http;
 
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.springframework.beans.BeanMetadataElement;
 import org.springframework.beans.factory.config.BeanDefinition;
@@ -26,7 +23,6 @@ import org.springframework.beans.factory.config.BeanDefinitionHolder;
 import org.springframework.beans.factory.config.RuntimeBeanReference;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.ManagedList;
-import org.springframework.beans.factory.support.ManagedMap;
 import org.springframework.beans.factory.xml.BeanDefinitionDecorator;
 import org.springframework.beans.factory.xml.ParserContext;
 import org.springframework.security.config.Elements;
@@ -75,7 +71,7 @@ public class FilterChainMapBeanDefinitionDecorator implements BeanDefinitionDeco
 								+ "'must not be empty", elt);
 			}
 
-			BeanDefinition matcher = matcherType.createMatcher(path, null);
+			BeanDefinition matcher = matcherType.createMatcher(parserContext, path, null);
 
 			if (filters.equals(HttpSecurityBeanDefinitionParser.OPT_FILTERS_NONE)) {
 				securityFilterChains.add(createSecurityFilterChain(matcher,

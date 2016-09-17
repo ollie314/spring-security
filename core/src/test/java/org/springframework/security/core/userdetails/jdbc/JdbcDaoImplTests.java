@@ -16,19 +16,28 @@
 
 package org.springframework.security.core.userdetails.jdbc;
 
-import static org.assertj.core.api.Assertions.*;
+import java.util.Locale;
 
 import org.junit.Test;
 
+import org.springframework.context.MessageSource;
 import org.springframework.security.PopulatedDatabase;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+
 /**
  * Tests {@link JdbcDaoImpl}.
  *
  * @author Ben Alex
+ * @author Eddú Meléndez
  */
 public class JdbcDaoImplTests {
 
@@ -60,19 +69,20 @@ public class JdbcDaoImplTests {
 		assertThat(user.getPassword()).isEqualTo("koala");
 		assertThat(user.isEnabled()).isTrue();
 
-		assertThat(AuthorityUtils.authorityListToSet(user.getAuthorities()).contains(
-				"ROLE_TELLER"));
-		assertThat(AuthorityUtils.authorityListToSet(user.getAuthorities()).contains(
-				"ROLE_SUPERVISOR"));
+		assertThat(AuthorityUtils.authorityListToSet(user.getAuthorities()))
+				.contains("ROLE_TELLER");
+		assertThat(AuthorityUtils.authorityListToSet(user.getAuthorities()))
+				.contains("ROLE_SUPERVISOR");
 	}
 
 	@Test
-	public void testCheckDaoOnlyReturnsGrantedAuthoritiesGrantedToUser() throws Exception {
+	public void testCheckDaoOnlyReturnsGrantedAuthoritiesGrantedToUser()
+			throws Exception {
 		JdbcDaoImpl dao = makePopulatedJdbcDao();
 		UserDetails user = dao.loadUserByUsername("scott");
 		assertThat(user.getAuthorities()).hasSize(1);
-		assertThat(AuthorityUtils.authorityListToSet(user.getAuthorities()).contains(
-				"ROLE_TELLER"));
+		assertThat(AuthorityUtils.authorityListToSet(user.getAuthorities()))
+				.contains("ROLE_TELLER");
 	}
 
 	@Test
@@ -133,10 +143,10 @@ public class JdbcDaoImplTests {
 		assertThat(user.getUsername()).isEqualTo("rod");
 		assertThat(user.getAuthorities()).hasSize(2);
 
-		assertThat(AuthorityUtils.authorityListToSet(user.getAuthorities()).contains(
-				"ARBITRARY_PREFIX_ROLE_TELLER"));
-		assertThat(AuthorityUtils.authorityListToSet(user.getAuthorities()).contains(
-				"ARBITRARY_PREFIX_ROLE_SUPERVISOR"));
+		assertThat(AuthorityUtils.authorityListToSet(user.getAuthorities()))
+				.contains("ARBITRARY_PREFIX_ROLE_TELLER");
+		assertThat(AuthorityUtils.authorityListToSet(user.getAuthorities()))
+				.contains("ARBITRARY_PREFIX_ROLE_SUPERVISOR");
 	}
 
 	@Test
@@ -184,5 +194,24 @@ public class JdbcDaoImplTests {
 		catch (IllegalArgumentException expected) {
 
 		}
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void setMessageSourceWhenNullThenThrowsException() throws Exception {
+		JdbcDaoImpl dao = new JdbcDaoImpl();
+
+		dao.setMessageSource(null);
+	}
+
+	@Test
+	public void setMessageSourceWhenNotNullThenCanGet() throws Exception {
+		MessageSource source = mock(MessageSource.class);
+		JdbcDaoImpl dao = new JdbcDaoImpl();
+		dao.setMessageSource(source);
+		String code = "code";
+
+		dao.getMessages().getMessage(code);
+
+		verify(source).getMessage(eq(code), any(Object[].class), any(Locale.class));
 	}
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2013 the original author or authors.
+ * Copyright 2002-2016 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,8 @@ import java.util.Map;
 import javax.servlet.Filter;
 import javax.servlet.http.HttpServletRequest;
 
+import org.springframework.context.ApplicationContext;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.AbstractConfiguredSecurityBuilder;
@@ -38,6 +40,7 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.annotation.web.configurers.AnonymousConfigurer;
 import org.springframework.security.config.annotation.web.configurers.ChannelSecurityConfigurer;
+import org.springframework.security.config.annotation.web.configurers.CorsConfigurer;
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.config.annotation.web.configurers.ExceptionHandlingConfigurer;
 import org.springframework.security.config.annotation.web.configurers.ExpressionUrlAuthorizationConfigurer;
@@ -61,7 +64,9 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.DefaultSecurityFilterChain;
 import org.springframework.security.web.PortMapper;
 import org.springframework.security.web.PortMapperImpl;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.context.AbstractSecurityWebApplicationInitializer;
+import org.springframework.security.web.servlet.util.matcher.MvcRequestMatcher;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.AnyRequestMatcher;
@@ -69,6 +74,9 @@ import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.RegexRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.util.Assert;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.filter.CorsFilter;
+import org.springframework.web.servlet.handler.HandlerMappingIntrospector;
 
 /**
  * A {@link HttpSecurity} is similar to Spring Security's XML &lt;http&gt; element in the
@@ -109,10 +117,10 @@ public final class HttpSecurity extends
 		AbstractConfiguredSecurityBuilder<DefaultSecurityFilterChain, HttpSecurity>
 		implements SecurityBuilder<DefaultSecurityFilterChain>,
 		HttpSecurityBuilder<HttpSecurity> {
-	private final RequestMatcherConfigurer requestMatcherConfigurer = new RequestMatcherConfigurer();
+	private final RequestMatcherConfigurer requestMatcherConfigurer;
 	private List<Filter> filters = new ArrayList<Filter>();
 	private RequestMatcher requestMatcher = AnyRequestMatcher.INSTANCE;
-	private FilterComparator comparitor = new FilterComparator();
+	private FilterComparator comparator = new FilterComparator();
 
 	/**
 	 * Creates a new instance
@@ -122,15 +130,24 @@ public final class HttpSecurity extends
 	 * @param sharedObjects the shared Objects to initialize the {@link HttpSecurity} with
 	 * @see WebSecurityConfiguration
 	 */
+	@SuppressWarnings("unchecked")
 	public HttpSecurity(ObjectPostProcessor<Object> objectPostProcessor,
 			AuthenticationManagerBuilder authenticationBuilder,
-			Map<Class<Object>, Object> sharedObjects) {
+			Map<Class<? extends Object>, Object> sharedObjects) {
 		super(objectPostProcessor);
 		Assert.notNull(authenticationBuilder, "authenticationBuilder cannot be null");
 		setSharedObject(AuthenticationManagerBuilder.class, authenticationBuilder);
-		for (Map.Entry<Class<Object>, Object> entry : sharedObjects.entrySet()) {
-			setSharedObject(entry.getKey(), entry.getValue());
+		for (Map.Entry<Class<? extends Object>, Object> entry : sharedObjects
+				.entrySet()) {
+			setSharedObject((Class<Object>) entry.getKey(), entry.getValue());
 		}
+		ApplicationContext context = (ApplicationContext) sharedObjects
+				.get(ApplicationContext.class);
+		this.requestMatcherConfigurer = new RequestMatcherConfigurer(context);
+	}
+
+	private ApplicationContext getContext() {
+		return getSharedObject(ApplicationContext.class);
 	}
 
 	/**
@@ -318,6 +335,19 @@ public final class HttpSecurity extends
 	}
 
 	/**
+	 * Adds a {@link CorsFilter} to be used. If a bean by the name of corsFilter is
+	 * provided, that {@link CorsFilter} is used. Else if corsConfigurationSource is
+	 * defined, then that {@link CorsConfiguration} is used. Otherwise, if Spring MVC is
+	 * on the classpath a {@link HandlerMappingIntrospector} is used.
+	 *
+	 * @return the {@link CorsConfigurer} for customizations
+	 * @throws Exception
+	 */
+	public CorsConfigurer<HttpSecurity> cors() throws Exception {
+		return getOrApply(new CorsConfigurer<HttpSecurity>());
+	}
+
+	/**
 	 * Allows configuring of Session Management.
 	 *
 	 * <h2>Example Configuration</h2>
@@ -413,7 +443,7 @@ public final class HttpSecurity extends
 	}
 
 	/**
-	 * Configures container based based pre authentication. In this case, authentication
+	 * Configures container based pre authentication. In this case, authentication
 	 * is managed by the Servlet Container.
 	 *
 	 * <h2>Example Configuration</h2>
@@ -617,7 +647,8 @@ public final class HttpSecurity extends
 	 */
 	public ExpressionUrlAuthorizationConfigurer<HttpSecurity>.ExpressionInterceptUrlRegistry authorizeRequests()
 			throws Exception {
-		return getOrApply(new ExpressionUrlAuthorizationConfigurer<HttpSecurity>())
+		ApplicationContext context = getContext();
+		return getOrApply(new ExpressionUrlAuthorizationConfigurer<HttpSecurity>(context))
 				.getRegistry();
 	}
 
@@ -693,7 +724,8 @@ public final class HttpSecurity extends
 	 * @throws Exception
 	 */
 	public CsrfConfigurer<HttpSecurity> csrf() throws Exception {
-		return getOrApply(new CsrfConfigurer<HttpSecurity>());
+		ApplicationContext context = getContext();
+		return getOrApply(new CsrfConfigurer<HttpSecurity>(context));
 	}
 
 	/**
@@ -719,7 +751,7 @@ public final class HttpSecurity extends
 	 * 		http.authorizeRequests().antMatchers(&quot;/**&quot;).hasRole(&quot;USER&quot;).and().formLogin()
 	 * 				.and()
 	 * 				// sample logout customization
-	 * 				.logout().logout().deleteCookies(&quot;remove&quot;).invalidateHttpSession(false)
+	 * 				.logout().deleteCookies(&quot;remove&quot;).invalidateHttpSession(false)
 	 * 				.logoutUrl(&quot;/custom-logout&quot;).logoutSuccessUrl(&quot;/logout-success&quot;);
 	 * 	}
 	 *
@@ -900,7 +932,9 @@ public final class HttpSecurity extends
 	 */
 	public ChannelSecurityConfigurer<HttpSecurity>.ChannelRequestMatcherRegistry requiresChannel()
 			throws Exception {
-		return getOrApply(new ChannelSecurityConfigurer<HttpSecurity>()).getRegistry();
+		ApplicationContext context = getContext();
+		return getOrApply(new ChannelSecurityConfigurer<HttpSecurity>(context))
+				.getRegistry();
 	}
 
 	/**
@@ -947,7 +981,7 @@ public final class HttpSecurity extends
 
 	@Override
 	protected DefaultSecurityFilterChain performBuild() throws Exception {
-		Collections.sort(filters, comparitor);
+		Collections.sort(filters, comparator);
 		return new DefaultSecurityFilterChain(requestMatcher, filters);
 	}
 
@@ -989,7 +1023,7 @@ public final class HttpSecurity extends
 	 * .servlet.Filter, java.lang.Class)
 	 */
 	public HttpSecurity addFilterAfter(Filter filter, Class<? extends Filter> afterFilter) {
-		comparitor.registerAfter(filter.getClass(), afterFilter);
+		comparator.registerAfter(filter.getClass(), afterFilter);
 		return addFilter(filter);
 	}
 
@@ -1002,7 +1036,7 @@ public final class HttpSecurity extends
 	 */
 	public HttpSecurity addFilterBefore(Filter filter,
 			Class<? extends Filter> beforeFilter) {
-		comparitor.registerBefore(filter.getClass(), beforeFilter);
+		comparator.registerBefore(filter.getClass(), beforeFilter);
 		return addFilter(filter);
 	}
 
@@ -1015,7 +1049,7 @@ public final class HttpSecurity extends
 	 */
 	public HttpSecurity addFilter(Filter filter) {
 		Class<? extends Filter> filterClass = filter.getClass();
-		if (!comparitor.isRegistered(filterClass)) {
+		if (!comparator.isRegistered(filterClass)) {
 			throw new IllegalArgumentException(
 					"The Filter class "
 							+ filterClass.getName()
@@ -1026,15 +1060,34 @@ public final class HttpSecurity extends
 	}
 
 	/**
+	 * Adds the Filter at the location of the specified Filter class. For example, if you
+	 * want the filter CustomFilter to be registered in the same position as
+	 * {@link UsernamePasswordAuthenticationFilter}, you can invoke:
+	 *
+	 * <pre>
+	 * addFilterAt(new CustomFilter(), UsernamePasswordAuthenticationFilter.class)
+	 * </pre>
+	 *
+	 * @param filter the Filter to register
+	 * @param atFilter the location of another {@link Filter} that is already registered
+	 * (i.e. known) with Spring Security.
+	 * @return the {@link HttpSecurity} for further customizations
+	 */
+	public HttpSecurity addFilterAt(Filter filter, Class<? extends Filter> atFilter) {
+		this.comparator.registerAt(filter.getClass(), atFilter);
+		return addFilter(filter);
+	}
+
+	/**
 	 * Allows specifying which {@link HttpServletRequest} instances this
 	 * {@link HttpSecurity} will be invoked on. This method allows for easily invoking the
 	 * {@link HttpSecurity} for multiple different {@link RequestMatcher} instances. If
-	 * only a single {@link RequestMatcher} is necessary consider using
+	 * only a single {@link RequestMatcher} is necessary consider using {@link #mvcMatcher(String)},
 	 * {@link #antMatcher(String)}, {@link #regexMatcher(String)}, or
 	 * {@link #requestMatcher(RequestMatcher)}.
 	 *
 	 * <p>
-	 * Invoking {@link #requestMatchers()} will not override previous invocations of
+	 * Invoking {@link #requestMatchers()} will not override previous invocations of {@link #mvcMatcher(String)}},
 	 * {@link #requestMatchers()}, {@link #antMatcher(String)},
 	 * {@link #regexMatcher(String)}, and {@link #requestMatcher(RequestMatcher)}.
 	 * </p>
@@ -1143,7 +1196,7 @@ public final class HttpSecurity extends
 	 *
 	 * <p>
 	 * Invoking {@link #requestMatcher(RequestMatcher)} will override previous invocations
-	 * of {@link #requestMatchers()}, {@link #antMatcher(String)},
+	 * of {@link #requestMatchers()}, {@link #mvcMatcher(String)}, {@link #antMatcher(String)},
 	 * {@link #regexMatcher(String)}, and {@link #requestMatcher(RequestMatcher)}.
 	 * </p>
 	 *
@@ -1165,7 +1218,7 @@ public final class HttpSecurity extends
 	 * {@link #requestMatchers()} or {@link #requestMatcher(RequestMatcher)}.
 	 *
 	 * <p>
-	 * Invoking {@link #antMatcher(String)} will override previous invocations of
+	 * Invoking {@link #antMatcher(String)} will override previous invocations of {@link #mvcMatcher(String)}},
 	 * {@link #requestMatchers()}, {@link #antMatcher(String)},
 	 * {@link #regexMatcher(String)}, and {@link #requestMatcher(RequestMatcher)}.
 	 * </p>
@@ -1180,11 +1233,31 @@ public final class HttpSecurity extends
 
 	/**
 	 * Allows configuring the {@link HttpSecurity} to only be invoked when matching the
+	 * provided Spring MVC pattern. If more advanced configuration is necessary, consider using
+	 * {@link #requestMatchers()} or {@link #requestMatcher(RequestMatcher)}.
+	 *
+	 * <p>
+	 * Invoking {@link #mvcMatcher(String)} will override previous invocations of {@link #mvcMatcher(String)}},
+	 * {@link #requestMatchers()}, {@link #antMatcher(String)},
+	 * {@link #regexMatcher(String)}, and {@link #requestMatcher(RequestMatcher)}.
+	 * </p>
+	 *
+	 * @param mvcPattern the Spring MVC Pattern to match on (i.e. "/admin/**")
+	 * @return the {@link HttpSecurity} for further customizations
+	 * @see MvcRequestMatcher
+	 */
+	public HttpSecurity mvcMatcher(String mvcPattern) {
+		HandlerMappingIntrospector introspector = new HandlerMappingIntrospector(getContext());
+		return requestMatcher(new MvcRequestMatcher(introspector, mvcPattern));
+	}
+
+	/**
+	 * Allows configuring the {@link HttpSecurity} to only be invoked when matching the
 	 * provided regex pattern. If more advanced configuration is necessary, consider using
 	 * {@link #requestMatchers()} or {@link #requestMatcher(RequestMatcher)}.
 	 *
 	 * <p>
-	 * Invoking {@link #regexMatcher(String)} will override previous invocations of
+	 * Invoking {@link #regexMatcher(String)} will override previous invocations of {@link #mvcMatcher(String)}},
 	 * {@link #requestMatchers()}, {@link #antMatcher(String)},
 	 * {@link #regexMatcher(String)}, and {@link #requestMatcher(RequestMatcher)}.
 	 * </p>
@@ -1198,20 +1271,75 @@ public final class HttpSecurity extends
 	}
 
 	/**
+	 * An extension to {@link RequestMatcherConfigurer} that allows optionally configuring
+	 * the servlet path.
+	 *
+	 * @author Rob Winch
+	 */
+	public final class MvcMatchersRequestMatcherConfigurer extends RequestMatcherConfigurer {
+
+		/**
+		 * Creates a new instance
+		 * @param context the {@link ApplicationContext} to use
+		 * @param matchers the {@link MvcRequestMatcher} instances to set the servlet path
+		 * on if {@link #servletPath(String)} is set.
+		 */
+		private MvcMatchersRequestMatcherConfigurer(ApplicationContext context,
+				List<MvcRequestMatcher> matchers) {
+			super(context);
+			this.matchers = new ArrayList<RequestMatcher>(matchers);
+		}
+
+		public RequestMatcherConfigurer servletPath(String servletPath) {
+			for (RequestMatcher matcher : this.matchers) {
+				((MvcRequestMatcher) matcher).setServletPath(servletPath);
+			}
+			return this;
+		}
+
+	}
+
+	/**
 	 * Allows mapping HTTP requests that this {@link HttpSecurity} will be used for
 	 *
 	 * @author Rob Winch
 	 * @since 3.2
 	 */
-	public final class RequestMatcherConfigurer extends
-			AbstractRequestMatcherRegistry<RequestMatcherConfigurer> {
-		private List<RequestMatcher> matchers = new ArrayList<RequestMatcher>();
+	public class RequestMatcherConfigurer
+			extends AbstractRequestMatcherRegistry<RequestMatcherConfigurer> {
 
+		protected List<RequestMatcher> matchers = new ArrayList<RequestMatcher>();
+
+		/**
+		 * @param context
+		 */
+		private RequestMatcherConfigurer(ApplicationContext context) {
+			setApplicationContext(context);
+		}
+
+		@Override
+		public MvcMatchersRequestMatcherConfigurer mvcMatchers(HttpMethod method,
+				String... mvcPatterns) {
+			List<MvcRequestMatcher> mvcMatchers = createMvcMatchers(method, mvcPatterns);
+			setMatchers(mvcMatchers);
+			return new MvcMatchersRequestMatcherConfigurer(getContext(), mvcMatchers);
+		}
+
+		@Override
+		public MvcMatchersRequestMatcherConfigurer mvcMatchers(String... patterns) {
+			return mvcMatchers(null, patterns);
+		}
+
+		@Override
 		protected RequestMatcherConfigurer chainRequestMatchers(
 				List<RequestMatcher> requestMatchers) {
-			matchers.addAll(requestMatchers);
-			requestMatcher(new OrRequestMatcher(matchers));
+			setMatchers(requestMatchers);
 			return this;
+		}
+
+		private void setMatchers(List<? extends RequestMatcher> requestMatchers) {
+			this.matchers.addAll(requestMatchers);
+			requestMatcher(new OrRequestMatcher(this.matchers));
 		}
 
 		/**
@@ -1223,8 +1351,6 @@ public final class HttpSecurity extends
 			return HttpSecurity.this;
 		}
 
-		private RequestMatcherConfigurer() {
-		}
 	}
 
 	/**

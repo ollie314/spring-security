@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Set;
 
 import org.springframework.context.ApplicationContextException;
+import org.springframework.context.MessageSource;
+import org.springframework.context.MessageSourceAware;
 import org.springframework.context.support.MessageSourceAccessor;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.support.JdbcDaoSupport;
@@ -108,7 +110,8 @@ import org.springframework.util.Assert;
  * @author colin sampaleanu
  * @author Luke Taylor
  */
-public class JdbcDaoImpl extends JdbcDaoSupport implements UserDetailsService {
+public class JdbcDaoImpl extends JdbcDaoSupport
+		implements UserDetailsService, MessageSourceAware {
 	// ~ Static fields/initializers
 	// =====================================================================================
 
@@ -124,8 +127,7 @@ public class JdbcDaoImpl extends JdbcDaoSupport implements UserDetailsService {
 	// ~ Instance fields
 	// ================================================================================================
 
-	protected final MessageSourceAccessor messages = SpringSecurityMessageSource
-			.getAccessor();
+	protected MessageSourceAccessor messages = SpringSecurityMessageSource.getAccessor();
 
 	private String authoritiesByUsernameQuery;
 	private String groupAuthoritiesByUsernameQuery;
@@ -146,6 +148,13 @@ public class JdbcDaoImpl extends JdbcDaoSupport implements UserDetailsService {
 
 	// ~ Methods
 	// ========================================================================================================
+
+	/**
+	 * @return the messages
+	 */
+	protected MessageSourceAccessor getMessages() {
+		return this.messages;
+	}
 
 	/**
 	 * Allows subclasses to add their own granted authorities to the list to be returned
@@ -169,6 +178,7 @@ public class JdbcDaoImpl extends JdbcDaoSupport implements UserDetailsService {
 				"Use of either authorities or groups must be enabled");
 	}
 
+	@Override
 	public UserDetails loadUserByUsername(String username)
 			throws UsernameNotFoundException {
 		List<UserDetails> users = loadUsersByUsername(username);
@@ -216,6 +226,7 @@ public class JdbcDaoImpl extends JdbcDaoSupport implements UserDetailsService {
 	protected List<UserDetails> loadUsersByUsername(String username) {
 		return getJdbcTemplate().query(this.usersByUsernameQuery,
 				new String[] { username }, new RowMapper<UserDetails>() {
+					@Override
 					public UserDetails mapRow(ResultSet rs, int rowNum)
 							throws SQLException {
 						String username = rs.getString(1);
@@ -236,6 +247,7 @@ public class JdbcDaoImpl extends JdbcDaoSupport implements UserDetailsService {
 	protected List<GrantedAuthority> loadUserAuthorities(String username) {
 		return getJdbcTemplate().query(this.authoritiesByUsernameQuery,
 				new String[] { username }, new RowMapper<GrantedAuthority>() {
+					@Override
 					public GrantedAuthority mapRow(ResultSet rs, int rowNum)
 							throws SQLException {
 						String roleName = JdbcDaoImpl.this.rolePrefix + rs.getString(2);
@@ -254,6 +266,7 @@ public class JdbcDaoImpl extends JdbcDaoSupport implements UserDetailsService {
 	protected List<GrantedAuthority> loadGroupAuthorities(String username) {
 		return getJdbcTemplate().query(this.groupAuthoritiesByUsernameQuery,
 				new String[] { username }, new RowMapper<GrantedAuthority>() {
+					@Override
 					public GrantedAuthority mapRow(ResultSet rs, int rowNum)
 							throws SQLException {
 						String roleName = getRolePrefix() + rs.getString(3);
@@ -392,5 +405,11 @@ public class JdbcDaoImpl extends JdbcDaoSupport implements UserDetailsService {
 	 */
 	public void setEnableGroups(boolean enableGroups) {
 		this.enableGroups = enableGroups;
+	}
+
+	@Override
+	public void setMessageSource(MessageSource messageSource) {
+		Assert.notNull(messageSource, "messageSource cannot be null");
+		this.messages = new MessageSourceAccessor(messageSource);
 	}
 }

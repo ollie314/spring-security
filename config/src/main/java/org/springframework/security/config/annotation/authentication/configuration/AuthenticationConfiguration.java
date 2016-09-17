@@ -19,9 +19,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
 import org.springframework.aop.framework.ProxyFactoryBean;
 import org.springframework.aop.target.LazyInitTargetSource;
 import org.springframework.beans.factory.BeanFactoryUtils;
@@ -34,6 +36,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.ObjectPostProcessor;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.authentication.configurers.GlobalAuthenticationConfigurerAdapter;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.util.Assert;
 
 /**
@@ -45,13 +49,16 @@ import org.springframework.util.Assert;
  */
 @Configuration
 public class AuthenticationConfiguration {
+
+	private AtomicBoolean buildingAuthenticationManager = new AtomicBoolean();
+
 	private ApplicationContext applicationContext;
 
 	private AuthenticationManager authenticationManager;
 
 	private boolean authenticationManagerInitialized;
 
-	private List<GlobalAuthenticationConfigurerAdapter> globalAuthConfigures = Collections
+	private List<GlobalAuthenticationConfigurerAdapter> globalAuthConfigurers = Collections
 			.emptyList();
 
 	private ObjectPostProcessor<Object> objectPostProcessor;
@@ -79,19 +86,23 @@ public class AuthenticationConfiguration {
 	}
 
 	public AuthenticationManager getAuthenticationManager() throws Exception {
-		if (authenticationManagerInitialized) {
-			return authenticationManager;
+		if (this.authenticationManagerInitialized) {
+			return this.authenticationManager;
+		}
+		AuthenticationManagerBuilder authBuilder = authenticationManagerBuilder(
+				this.objectPostProcessor);
+		if (this.buildingAuthenticationManager.getAndSet(true)) {
+			return new AuthenticationManagerDelegator(authBuilder);
 		}
 
-		AuthenticationManagerBuilder authBuilder = authenticationManagerBuilder(objectPostProcessor);
-		for (GlobalAuthenticationConfigurerAdapter config : globalAuthConfigures) {
+		for (GlobalAuthenticationConfigurerAdapter config : globalAuthConfigurers) {
 			authBuilder.apply(config);
 		}
 
 		authenticationManager = authBuilder.build();
 
 		if (authenticationManager == null) {
-			authenticationManager = getAuthenticationMangerBean();
+			authenticationManager = getAuthenticationManagerBean();
 		}
 
 		this.authenticationManagerInitialized = true;
@@ -102,7 +113,7 @@ public class AuthenticationConfiguration {
 	public void setGlobalAuthenticationConfigurers(
 			List<GlobalAuthenticationConfigurerAdapter> configurers) throws Exception {
 		Collections.sort(configurers, AnnotationAwareOrderComparator.INSTANCE);
-		this.globalAuthConfigures = configurers;
+		this.globalAuthConfigurers = configurers;
 	}
 
 	@Autowired
@@ -134,7 +145,7 @@ public class AuthenticationConfiguration {
 		return (T) proxyFactory.getObject();
 	}
 
-	private AuthenticationManager getAuthenticationMangerBean() {
+	private AuthenticationManager getAuthenticationManagerBean() {
 		return lazyBean(AuthenticationManager.class);
 	}
 
@@ -155,6 +166,46 @@ public class AuthenticationConfiguration {
 			if (logger.isDebugEnabled()) {
 				logger.debug("Eagerly initializing " + beansWithAnnotation);
 			}
+		}
+	}
+
+	/**
+	 * Prevents infinite recursion in the event that initializing the
+	 * AuthenticationManager.
+	 *
+	 * @author Rob Winch
+	 * @since 4.1.1
+	 */
+	static final class AuthenticationManagerDelegator implements AuthenticationManager {
+		private AuthenticationManagerBuilder delegateBuilder;
+		private AuthenticationManager delegate;
+		private final Object delegateMonitor = new Object();
+
+		AuthenticationManagerDelegator(AuthenticationManagerBuilder delegateBuilder) {
+			Assert.notNull(delegateBuilder, "delegateBuilder cannot be null");
+			this.delegateBuilder = delegateBuilder;
+		}
+
+		@Override
+		public Authentication authenticate(Authentication authentication)
+				throws AuthenticationException {
+			if (this.delegate != null) {
+				return this.delegate.authenticate(authentication);
+			}
+
+			synchronized (this.delegateMonitor) {
+				if (this.delegate == null) {
+					this.delegate = this.delegateBuilder.getObject();
+					this.delegateBuilder = null;
+				}
+			}
+
+			return this.delegate.authenticate(authentication);
+		}
+
+		@Override
+		public String toString() {
+			return "AuthenticationManagerDelegator [delegate=" + this.delegate + "]";
 		}
 	}
 }
